@@ -1,5 +1,5 @@
 import  math
-from math import e, pi
+from math import e, pi, fmod
 from dataclasses import dataclass
 import itertools 
 
@@ -7,26 +7,29 @@ import cmath
 import matplotlib.pyplot as plt
 from   matplotlib.path import Path
 import matplotlib.patches as patches 
-#use Arc     for Curves and 
-#    Polygon for Segments 
-
-pi2 = pi / 2.0
-pi4 = pi / 4.0
 
 P = dict() #Points
 S = dict() #Segments
 C = dict() #Curves
 Ch = dict() #Chains
 
+
 def normalize( angle:float) ->float:
-    """ Return radians between 0 and 2pi
+    """ Return radians between 0 and 2pi 
+    for any input.
     """
     remain = math.fmod(angle,(2*pi))
     if remain < 0:
         return remain + 2*pi
     else:
         return remain
-
+def norm_as_delta ( angle:float) ->float:
+    """ normalize to between -pi and pi
+    this is better for a delta in bearing
+    not the bearing itself.  Note bearings
+    are still reachable. 
+    """
+    return normalize( angle +pi ) - pi
 
 class Geo:
     pass
@@ -58,11 +61,8 @@ class Point(complex):
 class Bearing(float):
     is_Bearing = True
 
-    def normalRange(self, phase ):
-        return normalize( phase )
-
     def __init__(self, brg, *args, **kwargs):
-        self.val = self.normalRange(brg)  
+        self.val = brg
 
     def Opposite(self):
         return normalize( self.val + pi )
@@ -165,18 +165,19 @@ class Segment:
 
 class Curve:
     is_Curve = True
-    ''' Curve is defined by a (PC, CC, Delta), since the arc will always tend to the CC, 
-    the notion of a negative Delta makes no sense so we will only allow 0 < Delta < 2pi
+    
+    """Curve is defined by a (PC, CC, Delta), 
+    PC != CC and -pi< Delta < pi and not zero
+    """
 
 
-    '''
-    def __init__(self, point1:Point, point2:Point,  angle:Delta , *args, **kwargs):
+    def __init__(self, point1:Point, point2:Point,  angle , *args, **kwargs):
         if abs( point1.val - point2.val) < 0.1:
             raise ValueError(
-                "%s.__new__ radius is too small" % self.__name__)
+                "%s.__new__ radius is too small" % self)
         if abs(angle == 0):
             raise ValueError(
-                "%s.__new__ Delta can not be zero" % self.__name__)
+                "%s.__new__ Delta can not be zero" % self)
  
         self.PC = point1
         self.CC = point2
@@ -184,7 +185,7 @@ class Curve:
         self.PC_to_CC_asSeg = Segment(self.CC, self.PC)
 
         self.R = abs( point1 - point2 )
-        self.Delta = angle.val
+        self.Delta = angle
         self.L = self.R * abs(self.Delta)
         # E distance from curve to PI
         self.E = self.R * (1/math.cos(self.Delta/2.0) - 1)
@@ -195,7 +196,7 @@ class Curve:
         self.CC_to_PC = -1 * self.PC_to_CC 
         #rotation of the CC_to_PC 
         #same as  mult by   cos(angle) + i*(sin(angle))
-        self.CC_to_PT =  self.CC_to_PC * e **complex(0, angle.val )
+        self.CC_to_PT =  self.CC_to_PC * e **complex(0, angle )
 
         # two PC is global other two are movements
         self.PT = Point.from_complex( self.PC + self.PC_to_CC + self.CC_to_PT )
@@ -297,9 +298,9 @@ if __name__ == "__main__":
     print(p2)
     p3 = Point.from_complex( complex(80,25) )
     print(p3)
-    b = Bearing( pi4 ) 
+    b = Bearing( pi/4 ) 
     print(b)
-    d = Delta( -pi4 ) 
+    d = Delta( -pi/4 ) 
     print(d)
     c = Curve(p1, p2, d)
     print(f"\n\n{c}")
@@ -331,7 +332,7 @@ if __name__ == "__main__":
     ax.add_patch( c.patch(linestyle='-') ) 
     ax.add_patch( s1.patch(linestyle='-') ) 
     plt.axis('scaled')
-    #plt.show()
+    plt.show()
 
     mychain = Chain("Ch_1", s1)
     mychain.StartSta = 12044
