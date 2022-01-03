@@ -59,13 +59,15 @@ def rand_bearing( ):
     return random.random() * 4*pi - 2*pi 
     
 
-
+def rb(a=-10,b=10):
+    return random.randint(a,b)
 
 
 def main():
+
     fig, ax = plt.subplots()
-    A = Point(0, 0)
-    B = Point(50,0)
+    A = Point(rb(), rb() )
+    B = Point(rb(), rb() )
     pts = []
     pts.append( A)
     pts.append( B)
@@ -74,7 +76,8 @@ def main():
     ax.add_patch( Aray.patch( scale = 50) )
 
     pts = [ ]
-    for i in range(20):
+
+    for i in range(5):
         B_bearing = rand_bearing()
         Bray = Ray ( B, B_bearing)
         pts.append( intersect_lines( Aray, Bray))

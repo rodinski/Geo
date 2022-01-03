@@ -324,6 +324,15 @@ class Curve:
             brg_end   = brg_CC_to_PC
         return patches.Arc( (x, y),r, r, 0, brg_start, brg_end, **kwargs )
 
+    '''
+    def patch_all( self, ** kwargs):
+       ret = [] 
+       ret.append( self.patch( **kwargs) )
+       ret.append(  (self.PC.X, self.CC.X, self.PT.X ), \
+                    (self.PC.Y, self.CC.Y, self.PT.Y ), \
+                    **kwargs ) 
+       return ret
+    '''
 
     def __repr__(self):
         rep =  "Curve:\n"
@@ -410,16 +419,13 @@ def main():
 
     curves = [ Curve( Point(11,10), Point(11,15), Delta(pi/4) ) ]
 
-    PIs = [ Point(0,0), Point(10,0), Point(20,3), Point(30,4), \
-            Point(40,4), Point(50,5), Point(60,5), ]
-
     #import X30_alignment_dict
 
     p1= Point( 100, 0)
     print(p1)
     p2 = Point( 90, 0)
     print(p2)
-    p3 = Point.from_complex( complex(80,25) )
+    p3 = Point.from_complex( complex(100,10) )
     print(p3)
     b = Bearing( pi/4 )
     print(b)
@@ -444,6 +450,7 @@ def main():
     fig, ax = plt.subplots()
     ax.scatter( as_XY(pts)[0],  as_XY(pts)[1] )
 
+
     segPatch = Segment( c.CC, c.PT).patch()
     print(f"{segPatch=}")
     circlePatch = c.patch()
@@ -454,6 +461,7 @@ def main():
     ax.add_patch( c.patch(linestyle='-') )
     ax.add_patch( s1.patch(linestyle='-') )
     ax.add_patch( Ray(c.PC, c.inBearing).patch( scale = 10, color='red' )  )
+    #ax.add_patch( c.patch_all() )
     plt.axis('scaled')
     plt.show()
 
