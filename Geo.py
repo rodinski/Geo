@@ -1,5 +1,4 @@
 """ Module for various geometry entities
-
 to be used in Civil Engineering
 makes use of python's complex numbers as
 x,y pairs.
@@ -9,7 +8,7 @@ import cmath
 from dataclasses import dataclass
 import itertools
 import math
-from math import e, pi
+from math import e, pi, cos, sin, tan
 import matplotlib.pyplot as plt
 from matplotlib import patches
 
@@ -103,7 +102,7 @@ class Bearing(float):
     def lt_90(self):
         ''' Return the bearing that is 90 CCW '''
         return self.val + pi/2
-    
+
     def rt_90(self):
         ''' Return the bearing that is 90 CW '''
         return self.val - pi/2
@@ -150,14 +149,29 @@ class Ray:
         mySeg = Segment(self.Point, inPoint)
         theta = self.angle_to(mySeg.Bearing() )
         return math.cos(theta) * mySeg.Len()
-
+    '''
     def offset_to(self, inPoint:Point)->float:
-        ''' Return the perpendicular distance from ray 
-        to inPoint. +(pos) = left, -(neg) = right'''
+        #Return the perpendicular distance from ray 
+        #to inPoint.
         mySeg = Segment(self.Point, inPoint)
         theta = self.angle_to(mySeg.Bearing() )
         return math.sin(theta) * mySeg.Len()
-         
+    '''
+
+    def patch(self, scale=1, width=1,  **kwargs):
+        """Use matplotlib.patches for consistency, method patches.Arc
+        works best for class Curve so we will also use method patches.Polygon
+        for the Segemnts. """
+
+        return patches.Arrow (self.Point.X, self.Point.Y, \
+                             scale *cos(self.Bearing), scale *sin(self.Bearing), \
+                             width,  **kwargs )
+
+        '''to inPoint. +(pos) = left, -(neg) = right'''
+        #mySeg = Segment(self.Point, inPoint)
+        #theta = self.angle_to(mySeg.Bearing() )
+        #return math.sin(theta) * mySeg.Len()
+
     def offset(self, dist:float)->Point:
         ''' Return a new point perpendicular to the bearing a distance
         of D from defining Point of the Ray. Do this my turning +90 deg
@@ -231,8 +245,6 @@ class Segment(Ray):
 
 
     #need to be able to accept an offset
-
-     
 
     def __repr__(self):
         s = ""
@@ -315,9 +327,10 @@ class Curve:
         _start_bearing= _inRay.Bearing
         _R = math.cos( delta/2.0 ) * _T
         return cls.from_PC_bearing_R_Delta(_pc, _start_bearing, _R, delta)
-        
+
     def inRay(self)->Ray:
         return Ray(self.PC, Bearing(self.inBearing))
+
     def outRay(self)->Ray:
         return Ray(self.PT, Bearing(self.outBearing))
 
@@ -342,11 +355,6 @@ class Curve:
 
         else:
             return None
-            
-        
-
-        
-
 
 
     def patch(self,**kwargs):
@@ -363,6 +371,15 @@ class Curve:
             brg_end   = brg_CC_to_PC
         return patches.Arc( (x, y),r, r, 0, brg_start, brg_end, **kwargs )
 
+    '''
+    def patch_all( self, ** kwargs):
+       ret = [] 
+       ret.append( self.patch( **kwargs) )
+       ret.append(  (self.PC.X, self.CC.X, self.PT.X ), \
+                    (self.PC.Y, self.CC.Y, self.PT.Y ), \
+                    **kwargs ) 
+       return ret
+    '''
 
     def __repr__(self):
         rep =  "Curve:\n"
@@ -462,7 +479,6 @@ def main():
 
 
 
-
     fig, ax = plt.subplots()
 
     c = Curve( points[0], Point(0,0), 2*pi/sides )
@@ -479,7 +495,7 @@ def main():
 
 
     ax.scatter( as_XY(points)[0],  as_XY(points)[1] )
-    
+
     ax.add_patch( Segment( c.PC, c.CC).patch(linestyle=':') )
     ax.add_patch( Segment( c.CC, c.PT).patch(linestyle=':') )
     ax.add_patch( c.patch(linestyle='-') )
