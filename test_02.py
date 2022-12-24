@@ -56,7 +56,7 @@ for i in range(1, len(PIs)-1):
     delta_a_to_b = norm_as_delta(b-a)
 
     #need to make this delta part of the Bearing class
-    #not one can not just take average of two bearings. 
+    #note one can not just take average of two bearings. 
     toCCbrg = normalize( a + delta_a_to_b/2 )
 
 

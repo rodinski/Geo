@@ -1,0 +1,129 @@
+     start: store_c btr  element atr
+
+            %import common.WORD      // imports from terminal library
+            %import common.CNAME
+            %import common.INT      // imports from terminal library
+            %import common.NUMBER    // imports from terminal library
+            %import common.SIGNED_NUMBER   // imports from terminal library
+            %import common.SIGNED_INT   // imports from terminal library
+            %import common.CHARACTER // 
+            %import common.WS
+            %ignore " "              // Disregard spaces in text
+            %ignore "|"              // Disregard spaces in text
+
+          n: /N(orth)?/i NUMBER
+          e: /E(ast)?/i  NUMBER
+         ne: n  e
+         pm: /(P|M)/i SIGNED_NUMBER
+//     rmh_id: CNAME*       //implement after strict geopak works
+
+  direction: (/(N|S)/i dms /(E|W)/i 
+           |  dms
+           |  SIGNED_NUMBER
+           |  id_p (/TO/i|",") id_p)    //AZ or number
+           
+      dms.1: SIGNED_INT (INT NUMBER)? pm?     
+    store_c:/STO(re)?/i  /CUR(ve)?/i n_id
+       n_id: WORD INT?   ("_" INT)*      //neds work be sure geopak convention is supported
+     id_p.1:( (WORD|INT)                 // abc  or 124 or abc124   not 12ab
+           | WORD "_"? INT)
+      
+   location: id_p | ne 
+         db: /db/i SIGNED_NUMBER
+
+   distance: (NUMBER
+           | /FROM/i id_p (/TO/i|",") id_p)  
+      angle: (SIGNED_NUMBER
+           | dms )
+
+       //  Curves have three parts bk tan ref | element | ah tan ref
+       btr:(/pc/i location /db/i direction
+          | /pi/i location /db/i direction 
+          | /pb/i location /db/i direction /tl(l)?/i distance)
+          // closing must be on line above
+
+   element:( /RAD(ius)?/i  distance
+          |  /DEG(ree)?/i  angle
+          |  /T(angent)?/i distance
+          |  /L(ength)?/i  distance
+          |  /POC/i        id_p )
+
+       atr:( /DA/i direction
+          |  /PA/i id_p  
+          |  /(M|P)? DEF(lection)?/i angle 
+          |  /(M|P)? T(angent)?/i distance
+          |  /(P|M)? L(ength)?/i  distance  //only works with know radius
+          |  /(P|M)? LC/i distance      )  //only works with known radius
+          
+//  abc123, ok    123abc, ng    abc000, ng
+// Alphanumeric point numbers should have an alpha prefix, then a number suffix,
+// rather than a numeric prefix, alpha suffix. For example, 123abc is not
+// acceptable, while abc123 is supported. The number portion must be greater than
+// zero, i.e., abdc0 or abc000 are not supported. Special characters, such as %,
+// *<, #, should also be avoided. Since the hyphen (-) symbol is utilized for
+// point range in several commands, a point number should not use hyphens.
+
+// A point on the forward tangent (PA) defines the tangent ahead.  This OPTION can
+// be used ONLY with OPTIONS 2, 4, and 5 of the Back Tangent Reference.  PA   pe
+// PA  40  
+
+
+// Basic terminals for common use
+//''' #start of common file
+//
+// Numbers
+//
+//
+//DIGIT: "0".."9"
+//HEXDIGIT: "a".."f"|"A".."F"|DIGIT
+//
+//INT: DIGIT+
+//SIGNED_INT: ["+"|"-"] INT
+//DECIMAL: INT "." INT? | "." INT
+//
+//// float = /-?\d+(\.\d+)?([eE][+-]?\d+)?/
+//_EXP: ("e"|"E") SIGNED_INT
+//FLOAT: INT _EXP | DECIMAL _EXP?
+//SIGNED_FLOAT: ["+"|"-"] FLOAT
+//
+//NUMBER: FLOAT | INT
+//SIGNED_NUMBER: ["+"|"-"] NUMBER
+//
+////
+//// Strings
+////
+//_STRING_INNER: /.*?/
+//_STRING_ESC_INNER: _STRING_INNER /(?<!\\)(\\\\)*?/
+//
+//ESCAPED_STRING : "\"" _STRING_ESC_INNER "\""
+//
+//
+////
+//// Names (Variables)
+////
+//LCASE_LETTER: "a".."z"
+//UCASE_LETTER: "A".."Z"
+//
+//LETTER: UCASE_LETTER | LCASE_LETTER
+//WORD: LETTER+
+//
+//CNAME: ("_"|LETTER) ("_"|LETTER|DIGIT)*
+//
+//
+////
+//// Whitespace
+////
+//WS_INLINE: (" "|/\t/)+
+//WS: /[ \t\f\r\n]/+
+//
+//CR : /\r/
+//LF : /\n/
+//NEWLINE: (CR? LF)+
+//
+//
+//// Comments
+//SH_COMMENT: /#[^\n]*/
+//CPP_COMMENT: /\/\/[^\n]*/
+//C_COMMENT: "/*" /(.|\n)*?/ "*/"
+//SQL_COMMENT: /--[^\n]*/
+//'''end of common file
