@@ -1,40 +1,25 @@
-"""
-This is a Docstring
-"""
-from math import pi, radians, fmod
-from  angles import normalize
+from angles import Angle, normalize 
+import angles 
+import math
+from math import pi
 
+def AsBearing( obj:float)-> float:
+    return normalize( obj, 0.0, 2*pi)
 
-class Bearing(float):
-    """
-    Bearing as a float normally from 0 to pi
-    with the ability to be a Delta(Angle)  bewteen -pi and pi
-    """
-    
-    def __init__(self, brg):
-        self.val = float( normalize(brg) )
-      
-    def Opposite(self):
-        return normalize( self.val + pi )
-    
-    def as_Delta(self):
-        return normalize( self.val, -pi, pi )
+def AsDelta( obj:float)-> float:
+    return normalize( obj, -pi, pi)
 
-    def Delta_to(self, other=None ):
-        """ Bearing.Delta_to( x )  = bearing.self + x
-        """
-        if other == None:
-            other = self.val
-        return normalize( other - self.val, -pi, pi )
+if __name__ == "__main__" :
+   from random import uniform
 
-    def __str__(self):
-        return f"Bearing={self.val}"
-    
-if __name__ == "__main__":
+   low  =   0
+   high =   2* pi
 
-    start = Bearing(radians(45))
-    end   = Bearing(radians(315))
-    print( start)
-    print( f"{    end=}")
-    print( Bearing(end-start).as_Delta() )
-    print( start.Delta_to() )
+   for i in range(10):
+       a_rad = round( uniform(low, high),2 )
+       b_rad = round( uniform(low, high),2 )
+       c =  a_rad - b_rad
+       c_Delta =  round(AsDelta(a_rad - b_rad), 2) 
+
+       fstr = f"{i=} {AsBearing(a_rad):.2f}  {AsBearing(b_rad):.2f}  {c_Delta:6.2f} "
+       print( fstr )

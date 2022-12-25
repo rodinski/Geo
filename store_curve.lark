@@ -11,9 +11,9 @@
             %ignore " "              // Disregard spaces in text
             %ignore "|"              // Disregard spaces in text
 
-          n: /N(orth)?/i NUMBER
-          e: /E(ast)?/i  NUMBER
-         ne: n  e
+          n: /N(orth)?/i SIGNED_NUMBER
+          e: /E(ast)?/i  SIGNED_NUMBER
+         ne: n e
          pm: /(P|M)/i SIGNED_NUMBER
 //     rmh_id: CNAME*       //implement after strict geopak works
 
@@ -22,7 +22,7 @@
            |  SIGNED_NUMBER
            |  id_p (/TO/i|",") id_p)    //AZ or number
            
-      dms.1: SIGNED_INT (INT NUMBER)? pm?     
+      dms.1: SIGNED_INT (INT NUMBER?)?  // dms_pm: SIGNED_INT (INT NUMBER)? pm?     
     store_c:/STO(re)?/i  /CUR(ve)?/i n_id
        n_id: WORD INT?   ("_" INT)*      //neds work be sure geopak convention is supported
      id_p.1:( (WORD|INT)                 // abc  or 124 or abc124   not 12ab
@@ -42,7 +42,7 @@
           | /pb/i location /db/i direction /tl(l)?/i distance)
           // closing must be on line above
 
-   element:( /RAD(ius)?/i  distance
+   element:( /RAD(ius)?/i  distance // -> RADIUS
           |  /DEG(ree)?/i  angle
           |  /T(angent)?/i distance
           |  /L(ength)?/i  distance
