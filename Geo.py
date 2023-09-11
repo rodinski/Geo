@@ -12,7 +12,6 @@ from math import e, pi, cos, sin, tan
 import matplotlib.pyplot as plt
 from matplotlib import patches
 from collections import namedtuple
-import random
 
 P = {} #Points
 S = {} #Segments
@@ -111,16 +110,30 @@ class PointList():
             
 
 class Angle(float):
+    '''Angle will be stored as a float with a nice __str__().
+    All math funtions will return a float without the __str__()
+    if unit='deg' is used the input should be in degrees and a 
+    conversion will happen so the internal storage will be radians
+    '''
     is_float = True
-
-    def __init__(self, flt:float, unit='rad'):
+    def __new__(cls, real, unit='rad'):
         if unit.lower() =='rad':
-            self.val = float( flt)
+            real = float(val)
         if unit.lower() == 'deg':
-            self.val =float( math.radians(flt) )
-    def __repr__(self):
-        return f"Angle({self.val} rad   {math.degrees(self.val)} deg)"
+            real =float( math.radians(real) )
+        return float.__new__(cls,real)
 
+    def __init__(self, real:float, unit='rad'):
+        #.real attibute should have been set in __new__
+        #
+        self.unit = unit
+
+    def __str__(self):
+        return '%g rad  %g deg' % (self, math.degrees(self) ) 
+
+    def __repr(self):
+        return "Angle({self:,f})"
+        
 class Distance(float):
     is_float = True
     def __init__(self, flt:float):
@@ -351,10 +364,10 @@ class Curve:
     is_Curve = True
 
     """Curve is defined by a (PC, CC, Delta),
-    PC != CC and -pi< Delta < pi and not zero
+    PC != CC and -2pi< Delta < 2pi and not zero
     """
 
-    def __init__(self, point1:Point, point2:Point,  Delta:float , *args, **kwargs):
+    def __init__(self, point1:Point, point2:Point,  Delta:Angle , *args, **kwargs):
         if abs( point1 - point2) < 0.1:
             raise ValueError(
                 "%s.__new__ radius is too small" % self)
@@ -362,29 +375,31 @@ class Curve:
             raise ValueError(
                 "%s.__new__ Delta can not be zero" % self)
 
-        self.PC = point1
-        self.CC = point2
-        self.PC_to_CC = self.CC - self.PC
-        self.CC_to_PC = self.PC - self.CC
-        self.PC_to_CC_asSeg = Segment(self.CC, self.PC)
+        
+        self.PC = point1   #Point
+        self.CC = point2   #Point
+        self.PC_to_CC = self.CC - self.PC   #Complex
+        self.CC_to_PC = self.PC - self.CC   #Complex
+        self.PC_to_CC_asSeg = Segment(self.CC, self.PC) #Segment
 
-        self.R = abs( point1 - point2 )
+        self.R = Distance(abs( point1 - point2 ))
         self.Delta = Delta
-        #self.Len = self.R * abs(self.Delta)
-        # E distance from curve to PI
-        self.E = self.R * (1/math.cos(self.Delta/2.0) - 1)
-        bearing_CC_to_PI = normalize(cmath.phase(self.PC - self.CC) + self.Delta/2.0)
+        # E distance from curve to PI, value error on cos( pi/2.0 ))
+        self.E = self.R * (1.0 / math.cos( Delta/2.0 ) - 1.0) #
+        bearing_CC_to_PI = cmath.phase(self.PC - self.CC) + self.Delta/2.0
         CC_to_PI = cmath.rect(self.R+self.E, bearing_CC_to_PI)
         self.PI = Point.from_complex( self.CC + CC_to_PI )
 
-        #rotation of the CC_to_PC
+        #rotation of the CC_to_PC using imag part of a complex number
         #same as  mult by   cos(Delta) + i*(sin(Delta))
         self.CC_to_PT =  self.CC_to_PC * e **complex(0, self.Delta )
 
-        # two PC is global other two are movements
-        self.PT = Point.from_complex( self.PC + self.PC_to_CC + self.CC_to_PT )
+        #Point.from_complex is still a point, PC->to_CC->to_PT is two steps
+        #could have been CC->to_PT
+        self.PT = Point.from_complex( self.PC + self.PC_to_CC + self.CC_to_PT ) #Point
+
         self.Chord = Segment( self.PC, self.PT )
-        self.T =  self.R * math.tan( self.Delta / 2.0)
+        self.T =  Distance(self.R * math.tan( self.Delta / 2.0))
         self.inBearing =  self.Chord.Bearing() - self.Delta /2.0
         self.outBearing = self.inBearing + self.Delta
     #need to be able to accept an offset
@@ -413,6 +428,13 @@ class Curve:
     def outRay(self)->Ray:
         return Ray(self.PT, Bearing(self.outBearing))
 
+
+
+
+    #  fix this and inversings return need more consistency
+
+
+
     def distance_and_offset(self, obPoint:Point)->(float, float):
         """ Return a tuple of (distance along curve and offest to the
         given Point. Return "None" if point is not in the curves domain"""
@@ -424,7 +446,7 @@ class Curve:
         mid = mySegment.Bearing()
         a = Segment(self.CC, self.PC).Bearing() 
         b = Segment(self.CC, self.PT).Bearing()
-        if  (mid-a) * (mid-b) <= 0: 
+        if  norm_as_delta(mid-a) * norm_as_delta(mid-b) <= 0: 
             # one must have been (pos) one (neg) 
             distance = Distance(abs(mid-a)*self.R)
             # difference in lenght then l/r correction based on
@@ -485,7 +507,7 @@ class Curve:
         else:
             brg_start = brg_CC_to_PT
             brg_end   = brg_CC_to_PC
-        return patches.Arc( (x, y),r, r, 0, brg_start, brg_end, **kwargs )
+        return patches.Arc( (x, y),r, r, angle=0, theta1=brg_start, theta2=brg_end, **kwargs )
 
     
     def patch_all( self, ** kwargs):
@@ -504,9 +526,13 @@ class Curve:
         rep += f"CC= {self.CC}\n"
         rep += f"PT= {self.PT}\n"
         rep += f" R= {self.R}\n"
-        rep += f"Delta= {self.Delta} rad {math.degrees(self.Delta)} deg\n"
+        rep += f" E= {self.E}\n"
+        rep += f"Delta= {self.Delta}\n"
         rep += f"Len()= {self.Len()}\n"
         rep += f"Chord= {self.Chord}\n"
+        rep += f"{cmath.phase(self.CC_to_PC)=}\n"
+        rep += f"{cmath.phase(self.CC_to_PT)=}\n"
+        rep += f"{self.CC_to_PC - self.CC_to_PT=}\n"
         #rep += f"-- Curve end --\n"
         # the segment finish up with a -- so last line not needed
         return rep
@@ -592,6 +618,20 @@ class Chain:
             if self.RoutesSta[i] <= sta and sta <= self.RoutesSta[i+1]:
                 distance = sta - self.RoutesSta[i]
                 return self.Routes[i].move_to(distance, offset)
+
+    def outRay(self)->Ray:
+        return self.Routes[-1].outRay()
+
+    def point_list(self )->list:
+        ret = []
+        for r in self.Routes:
+            if isinstance(r, Curve):
+                ret.extend( [r.PC, r.CC, r.PT] )
+            else:
+                ret.extend( [r.Pt1, r.Pt2] )
+        return ret
+
+
     def patch_list(self )->list:
         ret = []
         for r in self.Routes:
@@ -605,7 +645,7 @@ class Chain:
     def inverse(self, point:Point, all=False, decimals=2)->list:
         '''For this Chain(self) return the station and offset of the input point
         there might be multiple valid station offset pairs, when all=True return 
-        each of the pairs sorted by ascending absolue distance from the chain.
+        each of the pairs sorted by ascending absolute distance from the chain.
         all=False is the default
         decimals=2 is the default decimal precision. 
         '''
@@ -613,20 +653,27 @@ class Chain:
         # ('station':???, 'offset':???)
 
 
+
+        #Fix this and the inverse for curves!
+
+
+
         StationOffsetNT = namedtuple("StationOffset", ['station', 'offset'])
+
         subList = []  
         for r,s_sta in zip(self.Routes, self.RoutesSta[:-1] ):
             dist, offset = r.distance_and_offset(point) 
-            if dist: # skip Nones
+            if dist and offset: # skip Nones
                 sta = round(dist + s_sta, decimals)
                 offset = round(offset, decimals)
                 subList.append( (sta, offset )  )
-
 
         sorted( subList, key=lambda tup:abs(tup[1]) )  #sort by the ascending abs of the offset
         if all:
             return subList
         else:
+            if len(subList) == 0:
+                return StationOffsetNT( None, None )
             return StationOffsetNT( subList[0][0], subList[0][1] )
 
 
@@ -642,105 +689,109 @@ class Chain:
         return _s
 
 
-
-
-
 def main():
-    fig, ax = plt.subplots()
-    points = []
+    import random
+    def randomPoints( pt, noise=5, number=10)->list:
+      point_list = []
+      for i in range(number):
+          x=pt.X + random.uniform( -noise, +noise)
+          y=pt.Y + random.uniform( -noise, +noise)
+          point_list.append( Point(x,y) )
+      return point_list
+    ru = lambda a,b: random.uniform(a,b) # b/w a and b
+    ru_10 = lambda : random.uniform( -10,10)
+    ru_100 = lambda : random.uniform( 90,110)
+
     R= 15
-    seg_rt   = Segment(Point(1,8), Point(1,10) )
-    seg_lf   = Segment(Point(-1,8), Point(-1,10) )
-    curve_rt = Curve(Point(1,10), Point(2,10), -0.75*pi)
-    curve_lf = Curve(Point(-1,10), Point(-2,10), +0.75*pi)
+    points = []
+    x= ru_10()
+    y= ru_10()
+    points.append( Point(x, y))
+    points.append(Point( ru_100(), points[-1].Y + ru_100()  ))
 
-    #ax.add_patch(seg_rt.patch())
-    #ax.add_patch(curve_rt.patch())
-    #ax.add_patch(seg_lf.patch())
-    #ax.add_patch(curve_lf.patch())
-    mychain_rt = Chain("Ch_rt", seg_rt, curve_rt )
-    for pa in curve_rt.patch_all():  #.patch_all returns a list of patches
-        ax.add_patch(pa)
+    segments = [] 
+    segments.append( Segment(points[-2], points[-1] ))
+    seg_length = segments[-1].Len() 
+    myChain = Chain( "default", segments[-1] ,StartSta=1000)
+    points.append( myChain.outRay().move_to(20,0) )
+    rand_R = ru(seg_length/10, seg_length/2 )  
+    rand_delta_n = ru(-90,-90-180)
+
+    myChain.addRoute( Curve.from_PC_bearing_R_Delta( 
+                            pc=myChain.Routes[-1].outRay().Point, #pc=points[-1], 
+                            brg=myChain.Routes[-1].outRay().Bearing,
+                            R=rand_R,
+                            delta=Angle(rand_delta_n, unit='deg')
+                            )
+                     )
+    points.append( myChain.outRay().move_to(20,0) )
+    myChain.addRoute( Curve.from_PC_bearing_R_Delta( 
+                            pc=myChain.Routes[-1].outRay().Point, #pc=points[-1], 
+                            brg=myChain.Routes[-1].outRay().Bearing,
+                            R=rand_R,
+                            delta=Angle(-rand_delta_n, unit='deg')
+                            )
+                     )
+    points.append( myChain.outRay().move_to(20,0) )
+    pcpt= myChain.Routes[-1].PC
     
-    mychain_lf = Chain("Ch_lf", seg_lf, curve_lf, StartSta=1000)
-    mychain_lf.forward(3.333)
+    domain = {
+    'low_x': min( [item.X for item in myChain.point_list() ] ), 
+    'high_x': max( [item.X for item in myChain.point_list() ] ),
+    'low_y': min( [item.Y for item in myChain.point_list() ] ),
+    'high_y': max( [item.Y for item in myChain.point_list() ] ) }
+    print( domain )
 
-    #print(mychain_lf)
-    #print(mychain_lf.RoutesSta)
-    for pa in mychain_lf.patch_list():
-        #print(pa)
-        ax.add_patch(pa)
+    rand_points = [] 
+    bad_points = [] 
+    rand_sta_off = []
 
-    for pa in mychain_rt.patch_list():
-        #print(pa)
-        ax.add_patch(pa)
+    #for i in range(3):
+    for i in randomPoints( myChain.outRay().Point, noise=1,number=3 ):
+        #x = random.uniform( domain['low_x'], domain['high_x'] )
+        #y = random.uniform( domain['low_y'], domain['high_y'] )
+        #p = Point(x,y)
 
-    points.append( mychain_lf.move_to(1001 ) ) 
-    points.append( mychain_lf.move_to(1001 ) ) 
-    points.append( mychain_lf.move_to(1001.4 ) ) 
-    points.append( mychain_lf.move_to(1002 ) ) 
-    points.append( mychain_lf.move_to(1002 ) ) 
-    points.append( mychain_lf.move_to(1003 ) ) 
-    points.append( mychain_lf.move_to(1004, .15 ) ) 
-    points.append( mychain_lf.move_to(1004,-.15 ) ) 
-    points.append( mychain_lf.move_to(1007, .15 ) ) 
-    points.append( mychain_lf.move_to(1007,-.15 ) ) 
-   
-    for p in points:
-        pass
-        #print(p)
-    plt.axis('scaled')
-    '''
-    for i in range(5):
-        x = random.uniform(-5,0)
-        y = random.uniform(7,8)
-        p = Point(x,y)
-        points.append(p, )
-        print(p, end='')
-        print("    ",mychain_lf.inverse( p, all=False ))
-    '''
-
-    p = points[-1]
-    print(p, end=None)
-    print("    ",mychain_lf.inverse( p, all=True ))
+        p = i
+        inver = myChain.inverse( p, all=True )
+        if len(inver)==0:
+            bad_points.append(p)
+        else:
+            rand_points.append(p)
+            rand_sta_off.append( inver[0] )
+            segments.append( Segment(p, myChain.move_to( inver[0][0], 0 )))
+    
+    #print(rand_sta_off)
+    rand_sta_off.sort( key= lambda tup: tup[0] )
+    for s_o in rand_sta_off:
+        print(s_o)
+    
 
 
+    fig, ax = plt.subplots()
     ax.scatter( as_XY(points)[0],  as_XY(points)[1], marker='+', color='r' )
+    ax.scatter( as_XY(rand_points)[0],  as_XY(rand_points)[1], marker='.', color='g' )
+    ax.scatter( as_XY(bad_points)[0],  as_XY(bad_points)[1], marker='o', color='r' )
+
+    last_sta = rand_sta_off[-1][0]
+    last_os = rand_sta_off[-1][1]
+    print("s_o:", last_sta, last_os)
+    for s in segments[1:]:
+        ax.add_patch(s.patch())
+    
+    print(myChain)
+    print(myChain.RoutesSta)
+    for r in myChain.Routes:
+        print(r.Len())
+
+
+    for p in myChain.patch_list():
+        #print(p)
+        ax.add_patch(p)
+    plt.axis('scaled')
     plt.show()
-    #myPointList = PointList(points)
-    #print(*myPointList)
+
 
 if __name__ == "__main__":
     main()
 
-
-
-''' 
-sides =8
-for i in range(sides):
-    angle = 2*pi/sides * i
-    points.append( Point.from_complex( cmath.rect(R,angle)))
-
-c = Curve( points[0], Point(0,0), 2*pi/sides )
-s1 = Segment( points[1], points[2] )
-c2 = Curve( points[2], Point(0,0), 2*pi/sides*2 )
-s2 = Segment( points[4], points[5] )
-
-points.append( c.move_to(10,1))
-points.append( c2.move_to(10,1) )
-points.append( c.move_to(10,-8))
-points.append( c2.move_to(10,-1) )
-
-ax.add_patch( Segment( c.PC, c.CC).patch(linestyle=':') )
-ax.add_patch( Segment( c.CC, c.PT).patch(linestyle=':') )
-ax.add_patch( c.patch(linestyle='-') )
-ax.add_patch( s1.patch(linestyle='-') )
-ax.add_patch( c2.patch(linestyle='-') )
-ax.add_patch( s2.patch(linestyle='-') )
-
-mychain = Chain("Ch_1", s1)
-mychain.StartSta = 12044
-#print(f"{mychain=}")
-print(f"{mychain.Name}")
-print(f"{mychain.Routes}")
-'''
