@@ -40,9 +40,18 @@ def normalize( angle:float) ->float:
 def norm_as_delta ( angle:float) ->float:
     """ normalize to between -pi and pi
     this is better for a delta in bearing
-    not the bearing itself.  Note all bearings
+    not the bearing itself.  Note, all bearings
     are still reachable."""
     return normalize( angle +pi ) - pi
+
+def conjugate_angle( inAngle ):
+    if abs(inAngle) > 2*pi:
+        ValueError: print("Angle out of range in congugate_angle function")
+    if inAngle == 0:
+        return 2*pi
+    #change the sign b/c we would going other way around the circle
+    return -1.0*sign(inAngle)*(2*pi-abs(inAngle)) 
+
 
 def change_in_bearing( start:float, end:float)->float:
     ''' Returns the change in bearing needed to get from start to end'''
@@ -432,36 +441,135 @@ class Curve:
 
 
     #  fix this and inversings return need more consistency
+    def has_dist_os(self, obPoint:Point)->str:
+        """For the input point determin if it is withing the sweep of the curve
+        A curve sweep may cross over the -/+Pi line and the logic becomes difficutly.
+        Howerver all curves have a non-curve part of the whold cirle.  Alwasy one side 
+        sweep crosses the -/+Pi line and the other side does not.  Try to work with the 
+        side that does not."""
+        
+        
+        #logic is easy to see if point is with in the wedge
+        pc_brg = cmath.phase(self.CC_to_PC)
+        defined_curve = -pi <= (pc_brg + self.Delta)  <= +pi 
+        ob_phase = obPoint.phase()
+        
+        if defined_curve:  #curve does not cross West axis
+            domain = sorted( [ pc_brg , pc_brg+self.Delta ] ) #put in numerical order
+            #check this wedge, if present return True
+            if domain[0] <= ob_phase <= domain[1]:
+                return True
+            else:
+                return False
+        else:  #ok so it will be easier to deal with the other (negative) wedge
+            #switch the returns from above
+            #need value of opposite curve AND need to switch the sign
+            opposite_delta = (2.0*pi - abs(self.Delta)) * (-1*sign(self.Delta))
+            domain2 = sorted( [ pc_brg , pc_brg +opposite_delta ] ) #put in numerical order
+            if domain2[0] <= ob_phase <= domain2[1]:
+                return False
+            else:
+                return True
+
+    def distance_offset(self, obPoint:Point)->(float, float):
+        """Return a tuple of  (distance, os) for a given point.
+        Return (None,None) when the point is not within the domain of the curve
+        """
+        mySegment = Segment(self.CC, obPoint)
+        if not Curve.has_dist_os(self, obPoint):
+            return (None,None)
+        #find the angle  PC_CC_obpoint  and the compliment of this angle.
+        #not which one has the same sign as the self.Delta
+        brg_pc = cmath.phase(self.CC_to_PC)
+        brg_obPoint = cmath.phase(obPoint)
+        #find the angle that matches the sign of self.Delta
+        if sign(self.Delta) == sign(brg_obPoint - brg_pc ):
+            angle = brg_obPoint - brg_pc  
+        else:
+            #need the explementary (or conjugate) angle
+            angle = conjugate_angle(self.Delta)
+        dist = Distance( abs(angle) * self.R ) 
+        offset = Distance((self.R - mySegment.Len())* sign(self.Delta) * -1) # -1 needed to get offset sign correct
+            #R and Len() do not have sign, the only sign has to do with Delta
+            #we need to use correctly use sign(Delta) to get Lt(-) vs Rt(+) sedt correctly
+        return (dist, offset)
 
 
 
     def distance_and_offset(self, obPoint:Point)->(float, float):
-        """ Return a tuple of (distance along curve and offest to the
-        given Point. Return "None" if point is not in the curves domain"""
+        """ Return a tuple of (distance_along_curve and offest to the
+        given Point). Return "None" if point is not in the curve's domain
+        The curves domain my be numerically discontinuous over the 
+        +pi / -pi line"""
+
+        """Start of the curve domain in the phase of the CC to PC line.
+        the domain increases for left (ccw) turns
+        the domain decreases for right (cw) turns
+        Delta has a domain of -2pi to 2pi 
+
+        we much check if a second domain starting at -pi is crosses"""
+
+        #if the Delta sweep area crosses the -/+Pi line then the other
+        #none sweep area does not.  This logic migh be useful
+
+        pc_brg = cmath.phase(self.CC_to_PC)
+        start1 = pc_brg
+
+        #Wwedges that cross the -/+pi boundary have two seperate domains 
+        #that need checking. Maybe we can avoid this check . . .
+
+        #Two pie-shaped wedge pieces, only one of them can cross the -/+pi line
+        #only work with the pieces that does not cross this line
+
+        #did we stay in the boundary    -Pi < PC+Delta < +Pi
+        
+       
+        if  -pi <=  (pc_brg + self.Delta) <= +pi: #logic is easy to see if point is within the wedge
+            domain = sorted( [ start1 , pc_brg+self.Delta ] )
+            if   not domain[0] <= obPoint.phase() <= domain[1]:
+                return ( None, None )
+        
+        else:
+            #intead of setting two valid ranges can we test the not condition
+            #the outer wedge? 
+
+            #set two valid ranges domain
+            end1 = pi * sign(self.Delta)  #-pi for cw and +pi for ccw
+            start2 = -end1
+            remaining_turn = (start1 + self.Delta) - end1  
+            end2 = start2 +  remaining_turn
+            domain = sorted([start1, end1]) + sorted([start2, end2])
+            if not (domain[0] <= obPoint.phase() <= domain[1] 
+               or 
+               domain[2] <= obPoint.phase() <= domain[3]):
+               return ( None, None )
+
+
+
         # Work form the curve CC, create a Segment to obPoint
         mySegment = Segment( self.CC, obPoint)
 
         #start from two extremes and work back to the test point, if they 
         # travel in seperate ways the test must have been beween them
         mid = mySegment.Bearing()
-        a = Segment(self.CC, self.PC).Bearing() 
-        b = Segment(self.CC, self.PT).Bearing()
-        if  norm_as_delta(mid-a) * norm_as_delta(mid-b) <= 0: 
+        a = Segment(self.CC, self.PC).Bearing()  
+        #b = Segment(self.CC, self.PT).Bearing()
+        #if  norm_as_delta(mid-a) * norm_as_delta(mid-b) <= 0: 
             # one must have been (pos) one (neg) 
-            distance = Distance(abs(mid-a)*self.R)
+        distance = Distance(abs(mid-a)*self.R)
             # difference in lenght then l/r correction based on
             # the sign of the Delta angle
             #print(f"{self.R=}")
             #print(f"{mySegment.Len()=}")
             #print(f"{sign(self.Delta)=}")
             
-            offset = Distance((self.R - mySegment.Len())* sign(self.Delta) * -1) # -1 needed to get offset sign correct
+        offset = Distance((self.R - mySegment.Len())* sign(self.Delta) * -1) # -1 needed to get offset sign correct
             #R and Len() do not have sign, the only sign has to do with Delta
             #we need to use correctly use sign(Delta) to get Lt(-) vs Rt(+) sedt correctly
-            return (distance, offset)
+        return (distance, offset)
 
-        else:
-            return (None,None)
+        #else:
+        #    return (None,None)
 
     def move_to(self, distance:float, offset=0.0)->Point:
         '''Return a point on the curve at distance from the PC'''
@@ -515,9 +623,9 @@ class Curve:
        ret.append( self.patch( **kwargs) )
        ret.append( Segment(self.CC, self.PC).patch(linestyle=':') )
        ret.append( Segment(self.CC, self.PT).patch(linestyle=':') )
-       ret.append( Segment(self.PC, self.PI).patch(linestyle=':') )
-       ret.append( Segment(self.PI, self.PT).patch(linestyle=':') )
        ret.append( Segment(self.PC, self.PT).patch(linestyle=':') )
+       #ret.append( Segment(self.PC, self.PI).patch(linestyle=':') )
+       #ret.append( Segment(self.PI, self.PT).patch(linestyle=':') )
        return ret
 
     def __repr__(self):
@@ -773,7 +881,7 @@ def main():
     ax.scatter( as_XY(rand_points)[0],  as_XY(rand_points)[1], marker='.', color='g' )
     ax.scatter( as_XY(bad_points)[0],  as_XY(bad_points)[1], marker='o', color='r' )
 
-    last_sta = rand_sta_off[-1][0]
+    last_sta = rand_sta_off[-1]
     last_os = rand_sta_off[-1][1]
     print("s_o:", last_sta, last_os)
     for s in segments[1:]:
