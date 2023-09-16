@@ -12,6 +12,8 @@ from math import e, pi, cos, sin, tan
 import matplotlib.pyplot as plt
 from matplotlib import patches
 from collections import namedtuple
+import itertools
+import IPython
 
 P = {} #Points
 S = {} #Segments
@@ -66,6 +68,9 @@ def as_XY( list_of_points ):
         x.append(i.X)
         y.append(i.Y)
     return (x,y)
+
+Dist_os_tup = namedtuple( "Dist_os_tup" , "distance offset")
+
 #class Geo:
 #    pass
 
@@ -326,11 +331,20 @@ class Segment(Ray):
 
     def distance_and_offset(self, obPoint:Point)->(float, float):
         if not ( 0.0 <= self.inRay().distance_to( obPoint) <= self.Len()):
-            return (None,None)
+
+            return Dist_os_tup(None,None)
         else: 
             distance = self.inRay().distance_to(obPoint)
             offset = self.inRay().offset_to(obPoint)
-            return (distance, offset)
+
+    def distance_offset(self, obPoint:Point)->(float, float):
+        if not ( 0.0 <= self.inRay().distance_to( obPoint) <= self.Len()):
+           return Dist_os_tup(None,None)
+        else: 
+           distance = self.inRay().distance_to(obPoint)
+           offset = self.inRay().offset_to(obPoint)
+           return Dist_os_tup(distance, offset)
+
 
     def move_to( self, distance:float, offset=0.0)->Point:
         if distance > self.Len(): 
@@ -449,14 +463,15 @@ class Curve:
         side that does not."""
         
         
-        #logic is easy to see if point is with in the wedge
+        #logic is easy to see if point is within the wedge
         pc_brg = cmath.phase(self.CC_to_PC)
         defined_curve = -pi <= (pc_brg + self.Delta)  <= +pi 
-        ob_phase = obPoint.phase()
+        ob_phase = cmath.phase(obPoint-self.CC)
         
         if defined_curve:  #curve does not cross West axis
             domain = sorted( [ pc_brg , pc_brg+self.Delta ] ) #put in numerical order
             #check this wedge, if present return True
+            #import pdb; pdb.set_trace()
             if domain[0] <= ob_phase <= domain[1]:
                 return True
             else:
@@ -476,23 +491,24 @@ class Curve:
         Return (None,None) when the point is not within the domain of the curve
         """
         mySegment = Segment(self.CC, obPoint)
+        #print(f"{Curve.has_dist_os(self, obPoint)=}")
         if not Curve.has_dist_os(self, obPoint):
-            return (None,None)
+            return Dist_os_tup(None,None)
         #find the angle  PC_CC_obpoint  and the compliment of this angle.
         #not which one has the same sign as the self.Delta
         brg_pc = cmath.phase(self.CC_to_PC)
-        brg_obPoint = cmath.phase(obPoint)
+        brg_obPoint = cmath.phase(obPoint-self.CC)
         #find the angle that matches the sign of self.Delta
         if sign(self.Delta) == sign(brg_obPoint - brg_pc ):
             angle = brg_obPoint - brg_pc  
         else:
             #need the explementary (or conjugate) angle
-            angle = conjugate_angle(self.Delta)
+            angle = conjugate_angle(brg_obPoint - brg_pc)
         dist = Distance( abs(angle) * self.R ) 
         offset = Distance((self.R - mySegment.Len())* sign(self.Delta) * -1) # -1 needed to get offset sign correct
             #R and Len() do not have sign, the only sign has to do with Delta
             #we need to use correctly use sign(Delta) to get Lt(-) vs Rt(+) sedt correctly
-        return (dist, offset)
+        return Dist_os_tup(dist, offset)
 
 
 
@@ -527,7 +543,7 @@ class Curve:
         if  -pi <=  (pc_brg + self.Delta) <= +pi: #logic is easy to see if point is within the wedge
             domain = sorted( [ start1 , pc_brg+self.Delta ] )
             if   not domain[0] <= obPoint.phase() <= domain[1]:
-                return ( None, None )
+                return Dist_os_tup( None, None )
         
         else:
             #intead of setting two valid ranges can we test the not condition
@@ -542,7 +558,7 @@ class Curve:
             if not (domain[0] <= obPoint.phase() <= domain[1] 
                or 
                domain[2] <= obPoint.phase() <= domain[3]):
-               return ( None, None )
+               return Dist_os_tup( None, None )
 
 
 
@@ -566,7 +582,7 @@ class Curve:
         offset = Distance((self.R - mySegment.Len())* sign(self.Delta) * -1) # -1 needed to get offset sign correct
             #R and Len() do not have sign, the only sign has to do with Delta
             #we need to use correctly use sign(Delta) to get Lt(-) vs Rt(+) sedt correctly
-        return (distance, offset)
+        return Dist_os_tup(distance, offset)
 
         #else:
         #    return (None,None)
@@ -685,12 +701,18 @@ class Chain:
             raise ValueError(
                 "forward() method not allowed for Chain with no routes"  )
 
+        lastRay = self.Routes[-1].outRay()
+        #segment add
         if math.isinf(R) and Delta ==0:
             lastRay = self.Routes[-1].outRay()
             pt2 = lastRay.move_to( distance )
             self.addRoute( Segment( lastRay.Point, pt2 ))
             return self.Routes[-1].outRay
-         #else:
+        #curve add
+        if math.isinf(R) and Delta != 0:
+            R = distance / Delta
+            self.addRoute( Curve.from_PC_bearing_R_Delta(lastRay.Point, lastRay.Bearing, R, Delta))
+            return self.Routes[-1].outRay
 
    
     def validate_add( self, ob)->bool:
@@ -708,6 +730,7 @@ class Chain:
                 raise ValueError(
                     "%s inRay needs to equal outRay" % self)
         return False
+
     def move_to(self, sta:float, offset=0.0)->Point:
         '''Return a new point along a chain defined by station and offset'''
         #print(f"{sta}")
@@ -750,7 +773,7 @@ class Chain:
                 ret.append(r.patch() )
         return ret 
 
-    def inverse(self, point:Point, all=False, decimals=2)->list:
+    def inverse(self, point:Point, all=False, decimals=2)->tuple:
         '''For this Chain(self) return the station and offset of the input point
         there might be multiple valid station offset pairs, when all=True return 
         each of the pairs sorted by ascending absolute distance from the chain.
@@ -760,29 +783,25 @@ class Chain:
         # might be better to return a named tuple or of list of named tubles.
         # ('station':???, 'offset':???)
 
-
-
         #Fix this and the inverse for curves!
-
-
-
-        StationOffsetNT = namedtuple("StationOffset", ['station', 'offset'])
-
         subList = []  
         for r,s_sta in zip(self.Routes, self.RoutesSta[:-1] ):
-            dist, offset = r.distance_and_offset(point) 
-            if dist and offset: # skip Nones
-                sta = round(dist + s_sta, decimals)
-                offset = round(offset, decimals)
+            dist, offset = r.distance_offset(point) 
+            if dist is not None and offset is not None: # skip Nones
+                sta    = round(dist + s_sta, decimals)
+                offset = round(offset,       decimals)
                 subList.append( (sta, offset )  )
+        #print( subList )
+            #import pdb; pdb.set_trace()
 
-        sorted( subList, key=lambda tup:abs(tup[1]) )  #sort by the ascending abs of the offset
+        subList = sorted( subList, key = lambda x:abs( x[1] ) )  #sort by the ascending abs of the offset
+        print(subList)
         if all:
             return subList
         else:
             if len(subList) == 0:
-                return StationOffsetNT( None, None )
-            return StationOffsetNT( subList[0][0], subList[0][1] )
+                return Dist_os_tup( None, None )
+            return Dist_os_tup( subList[0][0], subList[0][1] )
 
 
     def __repr__( self )->str:
@@ -812,18 +831,21 @@ def main():
 
     R= 15
     points = []
-    x= ru_10()
-    y= ru_10()
+    x=5 # ru_10()
+    y= 2 #ru_10()
     points.append( Point(x, y))
-    points.append(Point( ru_100(), points[-1].Y + ru_100()  ))
+    #points.append(Point( ru_100(), points[-1].Y + ru_100()  ))
+    points.append(Point( 102, points[-1].Y + 105  ))
 
     segments = [] 
     segments.append( Segment(points[-2], points[-1] ))
     seg_length = segments[-1].Len() 
     myChain = Chain( "default", segments[-1] ,StartSta=1000)
-    points.append( myChain.outRay().move_to(20,0) )
-    rand_R = ru(seg_length/10, seg_length/2 )  
-    rand_delta_n = ru(-90,-90-180)
+    #points.append( myChain.outRay().move_to(20,0) )
+    #rand_R = ru(seg_length/10, seg_length/2 )  
+    rand_R = seg_length/5
+    #rand_delta_n = ru(-90,-90-180)
+    rand_delta_n = -70
 
     myChain.addRoute( Curve.from_PC_bearing_R_Delta( 
                             pc=myChain.Routes[-1].outRay().Point, #pc=points[-1], 
@@ -832,7 +854,7 @@ def main():
                             delta=Angle(rand_delta_n, unit='deg')
                             )
                      )
-    points.append( myChain.outRay().move_to(20,0) )
+    #points.append( myChain.outRay().move_to(20,0) )
     myChain.addRoute( Curve.from_PC_bearing_R_Delta( 
                             pc=myChain.Routes[-1].outRay().Point, #pc=points[-1], 
                             brg=myChain.Routes[-1].outRay().Bearing,
@@ -840,8 +862,6 @@ def main():
                             delta=Angle(-rand_delta_n, unit='deg')
                             )
                      )
-    points.append( myChain.outRay().move_to(20,0) )
-    pcpt= myChain.Routes[-1].PC
     
     domain = {
     'low_x': min( [item.X for item in myChain.point_list() ] ), 
@@ -854,45 +874,35 @@ def main():
     bad_points = [] 
     rand_sta_off = []
 
+    print( myChain.RoutesSta )
+    print( myChain.Routes[1].distance_offset( Point(95,95 )) )
+
     #for i in range(3):
-    for i in randomPoints( myChain.outRay().Point, noise=1,number=3 ):
-        #x = random.uniform( domain['low_x'], domain['high_x'] )
-        #y = random.uniform( domain['low_y'], domain['high_y'] )
-        #p = Point(x,y)
-
-        p = i
-        inver = myChain.inverse( p, all=True )
-        if len(inver)==0:
-            bad_points.append(p)
+    d_os = []
+    y = 10 
+    #for i in  [Point(0,0), Point(95,y), Point(100,y), Point(110,y), Point(120,y),Point(130,y), Point(140,y), Point(150,y), ]:
+    for loop in  range(300):
+        i = Point( random.uniform( domain['low_x']-20,2*domain['high_x']), random.uniform(domain['low_y']-20, 2*domain['high_y']) )
+        print("\n",i)
+        inver = myChain.inverse(i)
+        if inver[0] is None:
+            bad_points.append(i)
         else:
-            rand_points.append(p)
-            rand_sta_off.append( inver[0] )
-            segments.append( Segment(p, myChain.move_to( inver[0][0], 0 )))
-    
-    #print(rand_sta_off)
-    rand_sta_off.sort( key= lambda tup: tup[0] )
-    for s_o in rand_sta_off:
-        print(s_o)
-    
-
+            rand_points.append(i)
+            segments.append( Segment(  myChain.move_to( inver[0], 0 ), i  ) )  #note there is no offset
 
     fig, ax = plt.subplots()
-    ax.scatter( as_XY(points)[0],  as_XY(points)[1], marker='+', color='r' )
+    #not plot vs scatter 
+    ax.scatter( as_XY(points)[0],  as_XY(points)[1],           marker='+', color='r' )
     ax.scatter( as_XY(rand_points)[0],  as_XY(rand_points)[1], marker='.', color='g' )
-    ax.scatter( as_XY(bad_points)[0],  as_XY(bad_points)[1], marker='o', color='r' )
+    ax.plot( as_XY(bad_points)[0],  as_XY(bad_points)[1],      marker='o', color='r', markersize=2, linestyle="None" )
+    ax.scatter( as_XY(d_os)[0],  as_XY(d_os)[1],               marker='+', color='g' )
 
-    last_sta = rand_sta_off[-1]
-    last_os = rand_sta_off[-1][1]
-    print("s_o:", last_sta, last_os)
-    for s in segments[1:]:
-        ax.add_patch(s.patch())
-    
-    print(myChain)
-    print(myChain.RoutesSta)
-    for r in myChain.Routes:
-        print(r.Len())
-
-
+    for rp in rand_points:
+        pass
+        #print(myChain.inverse(rp) )
+    for s in segments:
+        ax.add_patch( s.patch( linestyle=':', linewidth=0.2) )
     for p in myChain.patch_list():
         #print(p)
         ax.add_patch(p)
