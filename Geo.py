@@ -99,8 +99,8 @@ class Point(complex):
         same as the Bearing! '''
         return cmath.phase(self)
 
-    def move_to(self, inPoint):
-        return cmath.polar(inPoint - self.val)
+    #def move_to(self, inPoint):
+    #    return cmath.polar(inPoint - self.val)
 
     def __repr__(self):
         return f"Point x={self.val.real:.4f}, y={self.val.imag:0.4f}"
@@ -198,9 +198,9 @@ class Ray:
         return Point.from_complex(_new_point)
 
     def multipoint(self, start: float,
-                    spacing: float, 
-                    n_steps: int,
-                   point_at_start=False)->tuple:
+                    spacing: float =0, 
+                    n_steps: int = 0,
+                   point_at_start: bool=False)->tuple:
         ''' return a tuple of points input
         start distance from Pt1 along the bearing, return of a point here
         is controlled by point_at_start=T/F (default=False)
@@ -328,14 +328,6 @@ class Segment(Ray):
         """ Reurn the turning angle needed from the inRay to some 
         given bearing"""
         return norm_as_delta(self.Bearing() - inBearing)
-
-    def distance_and_offset(self, obPoint:Point)->(float, float):
-        if not ( 0.0 <= self.inRay().distance_to( obPoint) <= self.Len()):
-
-            return Dist_os_tup(None,None)
-        else: 
-            distance = self.inRay().distance_to(obPoint)
-            offset = self.inRay().offset_to(obPoint)
 
     def distance_offset(self, obPoint:Point)->(float, float):
         if not ( 0.0 <= self.inRay().distance_to( obPoint) <= self.Len()):
@@ -487,12 +479,31 @@ class Curve:
                 return True
 
     def distance_offset(self, obPoint:Point)->(float, float):
-        """Return a tuple of  (distance, os) for a given point.
+        '''Return a tuple of  (distance, os) for a given point.
         Return (None,None) when the point is not within the domain of the curve
-        """
+        The curves domain may be numerically discontinuous over the 
+        +pi / -pi line
+        
+        Use Curve.has_dist_os()  to check if we are in the curves domain.
+
+        Note all curves are one part of a total circle. Of the two curves
+        that complete a circle one will (and one will not) cross the 
+        +pi/-pi line. This logic is used to simplify finding the angle
+        from the PC_CC_point of interest angle.
+
+        The sign of Delta is important
+
+        Start of the curve domain is the phase of the CC to PC line.
+        the domain increases for left (ccw) turns
+        the domain decreases for right (cw) turns
+        Delta has a domain of -2pi to 2pi 
+
+        helper functions: has_dist_os() and conjugate_angle
+        '''
+
         mySegment = Segment(self.CC, obPoint)
         #print(f"{Curve.has_dist_os(self, obPoint)=}")
-        if not Curve.has_dist_os(self, obPoint):
+        if not Curve.has_dist_os(self, obPoint): 
             return Dist_os_tup(None,None)
         #find the angle  PC_CC_obpoint  and the compliment of this angle.
         #not which one has the same sign as the self.Delta
@@ -512,21 +523,7 @@ class Curve:
 
 
 
-    def distance_and_offset(self, obPoint:Point)->(float, float):
-        """ Return a tuple of (distance_along_curve and offest to the
-        given Point). Return "None" if point is not in the curve's domain
-        The curves domain my be numerically discontinuous over the 
-        +pi / -pi line"""
-
-        """Start of the curve domain in the phase of the CC to PC line.
-        the domain increases for left (ccw) turns
-        the domain decreases for right (cw) turns
-        Delta has a domain of -2pi to 2pi 
-
-        we much check if a second domain starting at -pi is crosses"""
-
-        #if the Delta sweep area crosses the -/+Pi line then the other
-        #none sweep area does not.  This logic migh be useful
+    '''def distance_and_offset(self, obPoint:Point)->(float, float):
 
         pc_brg = cmath.phase(self.CC_to_PC)
         start1 = pc_brg
@@ -586,6 +583,7 @@ class Curve:
 
         #else:
         #    return (None,None)
+    '''
 
     def move_to(self, distance:float, offset=0.0)->Point:
         '''Return a point on the curve at distance from the PC'''
@@ -773,11 +771,10 @@ class Chain:
                 ret.append(r.patch() )
         return ret 
 
-    def inverse(self, point:Point, all=False, decimals=2)->tuple:
+    def inverse(self, point:Point, decimals=2)->tuple:
         '''For this Chain(self) return the station and offset of the input point
-        there might be multiple valid station offset pairs, when all=True return 
-        each of the pairs sorted by ascending absolute distance from the chain.
-        all=False is the default
+        there might be multiple valid station offset pairs, return 
+        the one with the shortest absolue offset distance from the chain.
         decimals=2 is the default decimal precision. 
         '''
         # might be better to return a named tuple or of list of named tubles.
@@ -795,13 +792,10 @@ class Chain:
             #import pdb; pdb.set_trace()
 
         subList = sorted( subList, key = lambda x:abs( x[1] ) )  #sort by the ascending abs of the offset
-        print(subList)
-        if all:
-            return subList
-        else:
-            if len(subList) == 0:
-                return Dist_os_tup( None, None )
-            return Dist_os_tup( subList[0][0], subList[0][1] )
+        #print(subList)
+        if len(subList) == 0:
+            return Dist_os_tup( None, None )
+        return Dist_os_tup( subList[0][0], subList[0][1] )
 
 
     def __repr__( self )->str:
@@ -814,6 +808,9 @@ class Chain:
         _s += f"<< Station: {self.RoutesSta[-1]} >>" + "\n"
         _s += "End Chain: " + self.Name 
         return _s
+
+
+
 
 
 def main():
@@ -875,7 +872,6 @@ def main():
     rand_sta_off = []
 
     print( myChain.RoutesSta )
-    print( myChain.Routes[1].distance_offset( Point(95,95 )) )
 
     #for i in range(3):
     d_os = []
@@ -883,8 +879,7 @@ def main():
     #for i in  [Point(0,0), Point(95,y), Point(100,y), Point(110,y), Point(120,y),Point(130,y), Point(140,y), Point(150,y), ]:
     for loop in  range(300):
         i = Point( random.uniform( domain['low_x']-20,2*domain['high_x']), random.uniform(domain['low_y']-20, 2*domain['high_y']) )
-        print("\n",i)
-        inver = myChain.inverse(i)
+        inver = myChain.inverse(i, )
         if inver[0] is None:
             bad_points.append(i)
         else:
