@@ -59,6 +59,16 @@ def change_in_bearing( start:float, end:float)->float:
     ''' Returns the change in bearing needed to get from start to end'''
     return norm_as_delta(normalize(end) - normalize(start))
 
+def xy(points_list:list)->tuple:
+    """Return a list of .x and a list of .y properites
+    for the given points_list.
+    Useful for use in matplotlib plts and scatter.
+    Such as  ax.scatter( *xy(pts), marker='+', color='g')
+    """
+    x = [ arg.X for arg in points_list ]
+    y = [ arg.Y for arg in points_list ]
+    return(x,y)
+
 def as_XY( list_of_points ):
     """From a list of Points return a tuple containing
     two list   ( [x's], [y's] )"""
@@ -132,7 +142,7 @@ class Angle(float):
     is_float = True
     def __new__(cls, real, unit='rad'):
         if unit.lower() =='rad':
-            real = float(val)
+            real = float(real)
         if unit.lower() == 'deg':
             real =float( math.radians(real) )
         return float.__new__(cls,real)
@@ -213,7 +223,6 @@ class Ray:
         for i in range(n_steps): 
             distance = start + (i+1)*spacing
             ret.append(self.move_to(distance))
-
 
 
     def equal(self, ob):
@@ -797,7 +806,6 @@ class Chain:
             return Dist_os_tup( None, None )
         return Dist_os_tup( subList[0][0], subList[0][1] )
 
-
     def __repr__( self )->str:
         _s = ""
         _s += "Chain: " + self.Name +"\n"
@@ -808,9 +816,6 @@ class Chain:
         _s += f"<< Station: {self.RoutesSta[-1]} >>" + "\n"
         _s += "End Chain: " + self.Name 
         return _s
-
-
-
 
 
 def main():
