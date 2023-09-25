@@ -1,45 +1,84 @@
 import itertools
 from Geo import Point, Segment, Curve, Chain, Ray, Angle, xy
-import Geo 
+import Geo
 import IPython
 import matplotlib.pyplot as plt
 import cmath
+from math import pi
+from collections import defaultdict
 import collections
 import pprint as pp
+from curve_intersection import ray_curve_intersect
 
-#setup for defaultdict to always produce a dict
-tree = lambda: collections.defaultdict(tree)
-t = tree()
 
-R= 900
-GDSPC= 8.0
+# setup for defaultdict to always produce a dict
+
+nested_dict = lambda: defaultdict(nested_dict)
+t = nested_dict()
+
+def walk_tree(inTree):
+    for k, v in inTree.items():
+        if isinstance(v, dict):
+            print(f"got on {v=}")
+            walk_tree(v)
+
+
+R = 900
+GDSPC = 8.0
 n_girders = 4
-delta_curve = Geo.Angle( -45, unit='deg')
-spans = itertools.accumulate([ 200, 200, 150 ], initial=10)
-sweeps = [90, 60, 80, 30 ]
+delta_curve = Geo.Angle(-45, unit='deg')
+spans = itertools.accumulate([200, 200, 150], initial=10)
+sweeps = [90, 60, 80, 30]
 
-cc = Point(1000,0)
+cc = Point(1000, 0)
 t['cc'] = cc
-pc = Point.from_complex( cc + complex(-R,0))
-curve_1 = Curve( pc, cc, delta_curve)
+pc = Point.from_complex(cc + complex(-R, 0))
+curve_1 = Curve(pc, cc, delta_curve)
 
-pts = [pc,  curve_1.PT ]
+pts = [pc, curve_1.PT, cc]
 brg = 0
-for span, sweep in zip( spans, sweeps):
+for span, sweep in zip(spans, sweeps):
     brg += 1
     print(f"{span=}    {sweep=}")
     print(span)
-    pt =  curve_1.move_to( span, 0)
-    t['pts']['bent'][brg] = pt
+    pt = curve_1.move_to(span, 0)
+    ref = t['pts']['bent'][brg]
+    ref['pt'][1] = pt
+    brg_brg = curve_1.tangent_at_point(pt) + \
+              Angle(sweep, unit='deg')
+    ref['ray']  = Ray(pt, brg_brg)
+    ref['pt'][2] = ref['ray'].move_to(40)
     pts.append(pt)
+    for i in [1, 2]:
+        pts.append(ref['pt'][i])
+brace=itertools.accumulate([20, 20, 20, 20 ,20,
+                           20, 20, 20, 20 , 40,
+                           20, 20, 20, 20 , 20,
+                           20, 20, 20   ], initial=10)
+for b in brace:
+    print(b)
+    pts.append(curve_1.move_to(b, 0))
 
-pp.pprint(t)
-pp.pprint(pts)
+
+GDSPC = 8.0
+for i in range(1, 5):
+    mdx_g = i + 1
+    delta_R = i*GDSPC
+    R_i = R + delta_R
+
+    t[mdx_g][i]['circle'] = Curve(cc+R_i, cc, -2*pi)
+    c_ref = t[mdx_g][i]['circle']
+    r_ref = t['pts']['bent'][2]['ray']
+    print(ray_curve_intersect(r_ref, c_ref) )
+    pts.append( ray_curve_intersect(r_ref, c_ref)[1])
+
+
+#print(f"\n\n{dict(t)=}")
+
 fig, ax = plt.subplots()
-ax.scatter( *xy(pts) )
+ax.scatter(*xy(pts))
 plt.axis('scaled')
 plt.show()
-    
 
 
 
@@ -87,4 +126,4 @@ print(bts)
 plt.axis('scaled')
 plt.show()
 """
-#IPython.embed()
+# IPython.embed()

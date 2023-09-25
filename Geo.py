@@ -6,7 +6,6 @@ x,y pairs.
 
 import cmath
 from dataclasses import dataclass
-import itertools
 import math
 from math import e, pi, cos, sin, tan
 import matplotlib.pyplot as plt
@@ -15,61 +14,66 @@ from collections import namedtuple
 import itertools
 import IPython
 
-P = {} #Points
-S = {} #Segments
-C = {} #Curves
-Ch ={} #Chains
+P = {}  # Points
+S = {}  # Segments
+C = {}  # Curves
+Ch = {}  # Chains
 
-def sign( in_val )->int:
-    ''' Return a value based only on the numerical sign or zero of 
+
+def sign(in_val) -> int:
+    ''' Return a value based only on the numerical sign or zero of
     the input value'''
     if in_val == 0:
         return int(0)
-    if in_val >  0:
+    if in_val > 0:
         return int(1)
-    if in_val <  0:
+    if in_val < 0:
         return int(-1)
 
-def normalize( angle:float) ->float:
+
+def normalize(angle: float) -> float:
     """ Return radians between 0 and 2pi
     for any input.
     """
-    remain = math.fmod(angle,(2*pi))
+    remain = math.fmod(angle, (2*pi))
     if remain < 0:
         return remain + 2*pi
     return remain
 
-def norm_as_delta ( angle:float) ->float:
+
+def norm_as_delta(angle: float) -> float:
     """ normalize to between -pi and pi
     this is better for a delta in bearing
     not the bearing itself.  Note, all bearings
     are still reachable."""
-    return normalize( angle +pi ) - pi
+    return normalize(angle +pi) - pi
 
-def conjugate_angle( inAngle ):
+
+def conjugate_angle(inAngle):
     if abs(inAngle) > 2*pi:
         ValueError: print("Angle out of range in congugate_angle function")
     if inAngle == 0:
         return 2*pi
-    #change the sign b/c we would going other way around the circle
-    return -1.0*sign(inAngle)*(2*pi-abs(inAngle)) 
+    # change the sign b/c we would going other way around the circle
+    return -1.0*sign(inAngle)*(2*pi-abs(inAngle))
 
 
-def change_in_bearing( start:float, end:float)->float:
+def change_in_bearing(start: float, end: float) -> float:
     ''' Returns the change in bearing needed to get from start to end'''
     return norm_as_delta(normalize(end) - normalize(start))
 
-def xy(points_list:list)->tuple:
+
+def xy(points_list: list) -> tuple:
     """Return a list of .x and a list of .y properites
     for the given points_list.
     Useful for use in matplotlib plts and scatter.
     Such as  ax.scatter( *xy(pts), marker='+', color='g')
     """
-    x = [ arg.X for arg in points_list ]
-    y = [ arg.Y for arg in points_list ]
-    return(x,y)
+    x = [arg.X for arg in points_list]
+    y = [arg.Y for arg in points_list]
+    return(x, y)
 
-def as_XY( list_of_points ):
+def as_XY(list_of_points):
     """From a list of Points return a tuple containing
     two list   ( [x's], [y's] )"""
     x = list()
@@ -77,39 +81,43 @@ def as_XY( list_of_points ):
     for i in list_of_points:
         x.append(i.X)
         y.append(i.Y)
-    return (x,y)
+    return (x, y)
 
-Dist_os_tup = namedtuple( "Dist_os_tup" , "distance offset")
+Dist_os_tup = namedtuple("Dist_os_tup", "distance offset")
 
 #class Geo:
 #    pass
 
 class Point(complex):
-    ''' At new Point called with  Point(x,y) or as Point.from_complex( complex_number )
-        internally the number is stored as a complex base class'''
+    """ At new Point called with  Point(x,y) or as 
+    Point.from_complex( complex_number )
+    internally the number is stored as a complex base class
+    """
     is_Point = True
-    
-    def __init__(self, x:float, y:float )->float:
+ 
+
+    def __init__(self, x: float, y: float) -> float:
         Decimals = 4
-        x = round(x,Decimals)
-        y = round(y,Decimals)
+        x = round(x, Decimals)
+        y = round(y, Decimals)
         self.val = complex(x, y)
         self.X = x
         self.Y = y
 
     @classmethod
-    def from_complex( cls, complex_numb:complex ):
-        '''Use this to define a Point you already have a complex number'''
+    def from_complex(cls, complex_numb:complex):
+        """Use this to define a Point you already have a complex number
+        """
         X = complex_numb.real
         Y = complex_numb.imag
-        return cls(X,Y)
+        return cls(X, Y)
 
     def phase(self):
         ''' returns the CCW  angle from Y=0 (East). This is not
         same as the Bearing! '''
         return cmath.phase(self)
 
-    #def move_to(self, inPoint):
+    # def move_to(self, inPoint):
     #    return cmath.polar(inPoint - self.val)
 
     def __repr__(self):
@@ -140,52 +148,68 @@ class Angle(float):
     conversion will happen so the internal storage will be radians
     '''
     is_float = True
+
+
     def __new__(cls, real, unit='rad'):
-        if unit.lower() =='rad':
+        if unit.lower() == 'rad':
             real = float(real)
         if unit.lower() == 'deg':
-            real =float( math.radians(real) )
-        return float.__new__(cls,real)
+            real = float(math.radians(real))
+        return float.__new__(cls, real)
 
-    def __init__(self, real:float, unit='rad'):
-        #.real attibute should have been set in __new__
+
+    def __init__(self, real: float, unit='rad'):
+        # .real attibute should have been set in __new__
         #
         self.unit = unit
 
     def __str__(self):
-        return '%g rad  %g deg' % (self, math.degrees(self) ) 
+        return '%g rad  %g deg' % (self, math.degrees(self))
 
     def __repr(self):
         return "Angle({self:,f})"
-        
+
+
 class Distance(float):
     is_float = True
-    def __init__(self, flt:float):
+
+
+    def __init__(self, flt: float):
         Decimals = int(6)
         self.val = round(flt, Decimals)
+
+
     def __repr__(self):
         return f"Distance({self.val:,f})"
-        
+
+
 class Bearing(float):
     ''' Angle from Y=0 (East) in the range of 0 to 2*pi
     we will want to add and subtract with changes in angles that will be in float'''
 
     is_Bearing = True
 
+
     def __init__(self, brg:float):
         self.val = brg
 
+
     def Opposite(self):
-        ''' Pi radians from the Bearing good for backsights in Civil
-        Engineering'''
+        """Pi radians from the Bearing good for backsights in Civil
+        Engineering.
+        """
         return normalize( self.val + pi )
+
+
     def lt_90(self):
-        ''' Return the bearing that is 90 CCW '''
+        """Return the bearing that is 90 CCW"""
         return self.val + pi/2
 
+
     def rt_90(self):
-        ''' Return the bearing that is 90 CW '''
+        """Return the bearing that is 90 CW """
         return self.val - pi/2
+
 
     def __repr__(self):
         return f"Bearing={self.val}"
@@ -193,34 +217,34 @@ class Bearing(float):
 
 @dataclass
 class Ray:
-    '''Class for when we have a know Point and only one particular Bearing
-    '''
+    """Class for when we have a know Point and only one particular Bearing
+    """
     is_Ray = True
-    def __init__(self, pt:Point, brg:Bearing):
+    def __init__(self, pt: Point, brg: Bearing):
         self.Point = pt
         self.Bearing = Bearing(brg)
 
-    def move_to(self, distance:float, offset=0.0)->Point:
+    def move_to(self, distance: float, offset=0.0) -> Point:
         ''' return a point on the ray, distance away from the ray origen
         '''
-        _new_point = self.Point + cmath.rect(distance, self.Bearing ) \
+        _new_point = self.Point + cmath.rect(distance, self.Bearing) \
                      + cmath.rect(offset, normalize(self.Bearing - pi/2.0))
         return Point.from_complex(_new_point)
 
     def multipoint(self, start: float,
-                    spacing: float =0, 
+                    spacing: float = 0, 
                     n_steps: int = 0,
-                   point_at_start: bool=False)->tuple:
-        ''' return a tuple of points input
+                   point_at_start: bool=False) -> tuple:
+        """Return a tuple of points input
         start distance from Pt1 along the bearing, return of a point here
         is controlled by point_at_start=T/F (default=False)
         spacing is a distance to the next point
-        n_steps integer number of points to produce 
-        '''
+        n_steps integer number of points to produce
+        """
         ret = ()
-        if  point_at_start:
+        if point_at_start:
             ret.append(self.move_to(start))
-        for i in range(n_steps): 
+        for i in range(n_steps):
             distance = start + (i+1)*spacing
             ret.append(self.move_to(distance))
 
@@ -233,25 +257,25 @@ class Ray:
            return True
         return False
 
-    def angle_to(self, destBearing:float )->float:
+    def angle_to(self, destBearing: float) -> float:
         ''' Return the turn angle needed to get at some destination bearing.
         Output limited to +/- pi '''
         start = destBearing
         end = self.Bearing
-        return norm_as_delta(start - end )
+        return norm_as_delta(start - end)
 
-    def distance_to(self, inPoint:Point)->float:
-        ''' What is the distance along the Ray till the 
+    def distance_to(self, inPoint: Point) -> float:
+        ''' What is the distance along the Ray till the
         point in quesition is at a right angle
         to the Ray '''
-        #make a Segment to the new point
-        #segments stored as 2 points Bearing is a method()
+        # make a Segment to the new point
+        # segments stored as 2 points Bearing is a method()
         mySeg = Segment(self.Point, inPoint)
-        theta = self.angle_to(mySeg.Bearing() )
+        theta = self.angle_to(mySeg.Bearing())
         ret = math.cos(theta) * mySeg.Len()
         return ret
     
-    def offset_to(self, inPoint:Point)->float:
+    def offset_to(self, inPoint: Point) -> float:
         #Return the perpendicular distance from ray 
         #to inPoint.
         mySeg = Segment(self.Point, inPoint)
@@ -529,6 +553,23 @@ class Curve:
             #R and Len() do not have sign, the only sign has to do with Delta
             #we need to use correctly use sign(Delta) to get Lt(-) vs Rt(+) sedt correctly
         return Dist_os_tup(dist, offset)
+
+    def normal_at_point(self, obPoint:Point)->Bearing:
+        if not self.has_dist_os(obPoint):
+            return None
+        return Bearing(cmath.phase(obPoint - self.CC))
+
+    def tangent_at_point(self, obPoint:Point)->Bearing:
+        if not self.has_dist_os(obPoint):
+            return None
+        norm = self.normal_at_point(obPoint)
+        if sign(self.Delta > 0):
+            turn = pi/2
+        else:
+            turn = -pi/2
+        return Bearing(norm + turn)
+
+
 
 
 
@@ -882,7 +923,7 @@ def main():
     d_os = []
     y = 10 
     #for i in  [Point(0,0), Point(95,y), Point(100,y), Point(110,y), Point(120,y),Point(130,y), Point(140,y), Point(150,y), ]:
-    for loop in  range(300):
+    for loop in  range(30):
         i = Point( random.uniform( domain['low_x']-20,2*domain['high_x']), random.uniform(domain['low_y']-20, 2*domain['high_y']) )
         inver = myChain.inverse(i, )
         if inver[0] is None:
@@ -901,6 +942,13 @@ def main():
     for rp in rand_points:
         pass
         #print(myChain.inverse(rp) )
+        for c in [1, 2]:
+            if myChain.Routes[c].normal_at_point(rp):
+                n1 = myChain.Routes[c].normal_at_point(rp)
+                t1 = myChain.Routes[c].tangent_at_point(rp)
+                print(c, n1, t1, n1-t1)
+
+    # input()
     for s in segments:
         ax.add_patch( s.patch( linestyle=':', linewidth=0.2) )
     for p in myChain.patch_list():
