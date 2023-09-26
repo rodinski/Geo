@@ -16,20 +16,14 @@ class my_defaultdict(defaultdict):
     def __int__(self, mycallable):
         self.defaultdict(mycallable)
 
-    def __str__(self):
-        ret_str = f"{self.items()=}"
-        return ret_str
+    #def __str__(self):
+    #    ret_str = f"{self.items()=}"
+    #    return ret_str
 
 nested_dict = lambda: my_defaultdict(nested_dict)
 t = nested_dict()
 
         
-def walk_tree(inTree):
-    for k, v in inTree.items():
-        print(k, v, type(v) )
-        if isinstance(v, my_defaultdict ):
-            print(f"\n{k=}\t{v=}")
-            walk_tree(v)
 
 
 R = 900
@@ -85,22 +79,29 @@ brace=itertools.accumulate([20, 20, 20, 20 ,20,
                             20, 20              ], initial=10 + 20)
 
 t['int_braces']['mdx'][1] = []
-ref = t['int_braces']['mdx'][1]    # easier typing
 brace_pts = []
 for b in brace:
     print(b)
     b_pt = curve_1.move_to(b, 0)
     brace_pts.append(b_pt)
-    ref.append(b_pt)
+    t['int_braces']['mdx'][1].append(b_pt)
 
 for mdx_g in [2, 3, 4, 5]:
+    t['int_braces']['mdx'][mdx_g] = list()
     c_ref = t['mdx_g'][mdx_g]['circle']
     for pt in t['int_braces']['mdx'][1]:   #each brace on mdx_1
         r_ref = Ray(cc, Segment(cc, pt).Bearing())
         pt = ray_curve_intersect(r_ref, c_ref)[1]
         brace_pts.append(pt)
+        t['int_braces']['mdx'][mdx_g].append(pt)
 
-    
+
+for mdx_g in [2, 3, 4, 5]:
+    for i, brace in enumerate(t['int_braces']['mdx'][mdx_g]):
+        outer = brace
+        inner = t['int_braces']['mdx'][mdx_g-1][i]
+        print( f"{mdx_g=}\t{i=}{abs(outer-inner)=}")
+
 
 #print(f"\n\n{dict(t)=}")
 
@@ -110,4 +111,25 @@ ax.scatter(*xy(brace_pts), marker='+', color='r')
 plt.axis('scaled')
 plt.show()
 
-# IPython.embed()
+
+def find_key(inTree, depth=0):
+    for k, v in inTree.items():
+        if isinstance(v, my_defaultdict ):
+            print(k)
+            depth+=1
+            find_key(v, depth=depth)
+            depth+=-1
+        else:
+            print("  "*depth, k)
+
+def walk_tree(inTree, depth=0):
+    for k, v in inTree.items():
+        if isinstance(v, my_defaultdict ):
+            walk_tree(v, depth=+1)
+        else:
+            print("  "*depth, f" {v.__repr__()}")
+    depth=-1
+
+#print(find_key(t))
+
+IPython.embed()
