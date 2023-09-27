@@ -49,13 +49,16 @@ for span, sweep in zip(spans, sweeps):
     print(span)
     pt = curve_1.move_to(span, 0)  # locate bents on curve_1 
     ref = t['pts']['bent'][bent] 
-    ref['pt']['mdx_1'] = pt              # far point on Ray
+    ref['pt']['mdx'][1] = pt              # far point on Ray
+    pts.append(pt)
+    
+    # bearing of brg line = tang + sweep 
     brg_brg = curve_1.tangent_at_point(pt) + Angle(sweep, unit='deg')
     ref['ray']  = Ray(pt, brg_brg)
     ref['pt']['left'] = ref['ray'].move_to(100) 
     ref['pt']['right'] = ref['ray'].move_to(-100) 
     pts.append(pt)
-    for item in ['mdx_1', 'left', 'right']:            
+    for item in [ 'left', 'right']:            
         pts.append(ref['pt'][item])
         
     girder_spacing = 8.0
@@ -64,7 +67,7 @@ for span, sweep in zip(spans, sweeps):
         delta_R = i*girder_spacing
         R_i = R + delta_R
 
-        c_ref = t['mdx_g'][mdx_g]['circle'] = Curve(cc+R_i, cc, -2*pi)
+        c_ref = t['mdx_g'][mdx_g]['circle'] = Curve(Point.from_complex(cc+R_i), cc, -2*pi)
         r_ref = t['pts']['bent'][bent]['ray']
         pts.append( ray_curve_intersect(r_ref, c_ref)[1])    # second of two intersections
 
@@ -131,5 +134,5 @@ def walk_tree(inTree, depth=0):
     depth=-1
 
 #print(find_key(t))
-
+print(pc)
 IPython.embed()
