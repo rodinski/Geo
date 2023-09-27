@@ -12,18 +12,12 @@ from curve_intersection import ray_curve_intersect
 
 
 # setup for defaultdict to always produce a dict
-class my_defaultdict(defaultdict):
-    def __int__(self, mycallable):
-        self.defaultdict(mycallable)
+class NestedDict(dict):
+    def __missing__(self, key):
+        self[key] = NestedDict()
+        return self[key]
 
-    #def __str__(self):
-    #    ret_str = f"{self.items()=}"
-    #    return ret_str
-
-nested_dict = lambda: my_defaultdict(nested_dict)
-t = nested_dict()
-
-        
+t = NestedDict()
 
 
 R = 900
