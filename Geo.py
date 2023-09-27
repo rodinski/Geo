@@ -143,7 +143,7 @@ class Angle(float):
         return '%g rad  %g deg' % (self, math.degrees(self))
 
     def __repr(self):
-        return "Angle({self:, f})"
+        return "Angle({self:,f})"
 
 class Distance(float):
     is_float = True
@@ -153,7 +153,7 @@ class Distance(float):
         self.val = round(flt, Decimals)
 
     #def __repr__(self):
-    #    return f"Distance({self.val:, f})"
+    #    return f"Distance({self.val:,f})"
 
 class Bearing(float):
     """ Angle from Y=0 (East) in the range of 0 to 2*pi
