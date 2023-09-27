@@ -18,6 +18,7 @@ P = {}  # Points
 S = {}  # Segments
 C = {}  # Curves
 Ch = {}  # Chains
+Dist_os_tup = namedtuple("Dist_os_tup", "distance offset")
 
 
 def sign(in_val) -> int:
@@ -30,7 +31,6 @@ def sign(in_val) -> int:
     if in_val < 0:
         return int(-1)
 
-
 def normalize(angle: float) -> float:
     """ Return radians between 0 and 2pi
     for any input.
@@ -40,14 +40,12 @@ def normalize(angle: float) -> float:
         return remain + 2*pi
     return remain
 
-
 def norm_as_delta(angle: float) -> float:
     """ normalize to between -pi and pi
     this is better for a delta in bearing
     not the bearing itself.  Note, all bearings
     are still reachable."""
     return normalize(angle + pi) - pi
-
 
 def conjugate_angle(inAngle):
     if abs(inAngle) > 2*pi:
@@ -57,11 +55,9 @@ def conjugate_angle(inAngle):
     # change the sign b/c we would going other way around the circle
     return -1.0*sign(inAngle)*(2*pi-abs(inAngle))
 
-
 def change_in_bearing(start: float, end: float) -> float:
     ''' Returns the change in bearing needed to get from start to end'''
     return norm_as_delta(normalize(end) - normalize(start))
-
 
 def xy(points_list: list) -> tuple:
     """Return a list of .x and a list of .y properites
@@ -73,7 +69,6 @@ def xy(points_list: list) -> tuple:
     y = [arg.Y for arg in points_list]
     return(x, y)
 
-
 def as_XY(list_of_points):
     """From a list of Points return a tuple containing
     two list   ([x's], [y's])"""
@@ -83,12 +78,6 @@ def as_XY(list_of_points):
         x.append(i.X)
         y.append(i.Y)
     return (x, y)
-
-Dist_os_tup = namedtuple("Dist_os_tup", "distance offset")
-
-# class Geo:
-#    pass
-
 
 class Point(complex):
     """ At new Point called with  Point(x, y) or as 
@@ -128,21 +117,6 @@ class Point(complex):
     def __str__(self):
         return f"Point x={self.val.real:.4f}, y={self.val.imag:0.4f}"
 
-'''
-class PointList():
-    #this eventually needs to be an iterable??
-    def __init__(self, args, ) -> list:
-        X = []
-        Y = []
-        print(args)
-        for p in args:
-            X.append(p.X)
-            Y.append(p.Y)
-        self.X = X
-        self.Y = Y
-'''
-
-
 class Angle(float):
     '''Angle will be stored as a float with a nice __str__().
     All math funtions will return a float without the __str__()
@@ -171,7 +145,6 @@ class Angle(float):
     def __repr(self):
         return "Angle({self:,f})"
 
-
 class Distance(float):
     is_float = True
 
@@ -181,7 +154,6 @@ class Distance(float):
 
     def __repr__(self):
         return f"Distance({self.val:,f})"
-
 
 class Bearing(float):
     """ Angle from Y=0 (East) in the range of 0 to 2*pi
@@ -208,7 +180,6 @@ class Bearing(float):
 
     def __repr__(self):
         return f"Bearing={self.val}"
-
 
 @dataclass
 class Ray:
@@ -901,6 +872,7 @@ def main():
                             delta=Angle(-rand_delta_n, unit='deg')
                             )
                      )
+    myChain.forward(distance=100)
 
     domain = {
     'low_x': min([item.X for item in myChain.point_list() ]), 
