@@ -12,8 +12,8 @@ from curve_intersection import ray_curve_intersect
 
 
 # setup for defaultdict to always produce a dict
-class NestedDict(dict):
-    def __missing__(self, key):
+class NestedDict(dict):    
+    def __missing__(self, key):  
         self[key] = NestedDict()
         return self[key]
 
@@ -109,24 +109,4 @@ plt.axis('scaled')
 plt.show()
 
 
-def find_key(inTree, depth=0):
-    for k, v in inTree.items():
-        if isinstance(v, my_defaultdict ):
-            print(k)
-            depth+=1
-            find_key(v, depth=depth)
-            depth+=-1
-        else:
-            print("  "*depth, k)
-
-def walk_tree(inTree, depth=0):
-    for k, v in inTree.items():
-        if isinstance(v, my_defaultdict ):
-            walk_tree(v, depth=+1)
-        else:
-            print("  "*depth, f" {v.__repr__()}")
-    depth=-1
-
-#print(find_key(t))
-print(pc)
 IPython.embed()
