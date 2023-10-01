@@ -250,6 +250,8 @@ class Ray:
         offset = math.sin(theta) * mySeg.Len()
         return offset
 
+    def copy_parallel(self, offset):
+        return Ray( self.move_to(0, offset), self.Bearing)
 
     def patch(self, scale=1, width=1,  **kwargs):
         """Use matplotlib.patches for consistency, method patches.Arc
@@ -348,9 +350,12 @@ class Segment(Ray):
                      + cmath.rect(offset, normalize(self.Bearing() - pi/2.0))
         return Point.from_complex(_new_point)
 
-
-
-    #need to be able to accept an offset
+    def copy_parallel(self, offset):
+        """Return copy of the Segment, offset has no limits
+        """
+        _pt1 = self.move_to(0, offset)
+        _pt2 = self.move_to(self.Len(), offset)
+        return Segment(_pt1, _pt2)
 
     def __repr__(self):
         s = ""
@@ -536,8 +541,28 @@ class Curve:
             turn = -pi/2
         return Bearing(norm + turn)
 
+    def copy_parallel(self, offset):
+        """Return a curve with a changed radius"""
+        # check if offset results in a valid R
+        # do we add or subtact the offset
+        _D = self.Delta
+        _D_sign = sign(self.Delta)
+        if _D_sign == 1:
+            _new_R = self.R + offset
+        else:
+            _new_R = self.R - offset
+
+        if sign(_new_R) == -1:
+            raise ValueError(
+                    "This offset will result in a negative R")
+        # make that new curve
+        print(f"{self.R=}  {_new_R=}")
+        _cc = self.CC
+        _pc = self.inRay().copy_parallel(offset).Point
 
 
+        # from_PC_bearing_R_Delta(cls, pc:Point, brg:float, R:float, delta:float)
+        return Curve(_pc, _cc, _D)
 
 
     '''def distance_and_offset(self, obPoint:Point)->(float, float):
