@@ -382,8 +382,9 @@ class Segment(Ray):
 class Curve:
     is_Curve = True
 
-    """Curve is defined by a (PC, CC, Delta),
-    PC != CC and -2pi< Delta < 2pi and not zero
+    """
+    Curve is defined by a (PC, CC, Delta), PC != CC and
+    -2pi< Delta < 2pi and not zero
     """
 
     def __init__(self, point1:Point, point2:Point,  Delta:Angle , *args, **kwargs):
@@ -409,12 +410,12 @@ class Curve:
         CC_to_PI = cmath.rect(self.R+self.E, bearing_CC_to_PI)
         self.PI = Point.from_complex(self.CC + CC_to_PI)
 
-        #rotation of the CC_to_PC using imag part of a complex number
-        #same as  mult by   cos(Delta) + i*(sin(Delta))
+        # rotation of the CC_to_PC using imag part of a complex number
+        # same as  mult by   cos(Delta) + i*(sin(Delta))
         self.CC_to_PT =  self.CC_to_PC * e **complex(0, self.Delta)
 
-        #Point.from_complex is still a point, PC->to_CC->to_PT is two steps
-        #could have been CC->to_PT
+        # Point.from_complex is still a point, PC->to_CC->to_PT is two steps
+        # could have been CC->to_PT
         self.PT = Point.from_complex(self.PC + self.PC_to_CC + self.CC_to_PT) #Point
 
         self.Chord = Segment(self.PC, self.PT)
@@ -447,20 +448,31 @@ class Curve:
     def outRay(self) -> Ray:
         return Ray(self.PT, Bearing(self.outBearing))
 
-
+    def is_offset_valid(self, offset: float) -> bool:
+        """
+        When copying a paralell offset the offset has limits.
+        CCW (positive) curves must have an offset larger than -R.
+        CW (negative) curves must have an offset smaller than R.
+        -offsets are to the left as traveling in direction of the curve.
+        +offsets are to the right.
+        """
+        if sign(self.Delta) > 0:
+            return offset > -self.R
+        else:
+            return offset < self.R
 
 
     #  fix this and inversings return need more consistency
     def has_dist_os(self, obPoint:Point) -> str:
-        """For the input point determin if it is withing the sweep of the curve
+        """
+        For the input point determin if it is within the sweep of the curve
         A curve sweep may cross over the -/+Pi line and the logic becomes difficutly.
         Howerver all curves have a non-curve part of the whold cirle.  Alwasy one side
         sweep crosses the -/+Pi line and the other side does not.  Try to work with the
-        side that does not."""
+        side that does not.
+        """
 
-
-
-        #logic is easy to see if point is within the wedge
+        # logic is easy to see if point is within the wedge
         pc_brg = cmath.phase(self.CC_to_PC)
         defined_curve = -pi <= (pc_brg + self.Delta)  <= +pi
         ob_phase = cmath.phase(obPoint-self.CC)
@@ -484,7 +496,8 @@ class Curve:
                 return True
 
     def distance_offset(self, obPoint:Point) -> (float, float):
-        '''Return a tuple of  (distance, os) for a given point.
+        '''
+        Return a tuple of  (distance, os) for a given point.
         Return (None, None) when the point is not within the domain of the curve
         The curves domain may be numerically discontinuous over the
         +pi / -pi line
@@ -545,6 +558,10 @@ class Curve:
         """Return a curve with a changed radius"""
         # check if offset results in a valid R
         # do we add or subtact the offset
+
+        if not self.is_offset_valid(offset):
+            raise ValueError(
+                    f"This {offset=} will result in a negative R")
         _D = self.Delta
         _D_sign = sign(self.Delta)
         if _D_sign == 1:
@@ -552,11 +569,9 @@ class Curve:
         else:
             _new_R = self.R - offset
 
-        if sign(_new_R) == -1:
-            raise ValueError(
-                    "This offset will result in a negative R")
+
         # make that new curve
-        print(f"{self.R=}  {_new_R=}")
+        # print(f"{self.R=}  {_new_R=}")
         _cc = self.CC
         _pc = self.inRay().copy_parallel(offset).Point
 
@@ -790,6 +805,21 @@ class Chain:
                 distance = sta - self.RoutesSta[i]
                 return self.Routes[i].move_to(distance, offset)
 
+    def copy_parallel(self, offset:float, StartSta=None):
+        """
+        Return a new chain at the given offset
+        """
+        # check that all curves have a valid offset
+        _new_routes = ['new_name']
+        for r in self.Routes:
+            if isinstance(r, Curve):                # test the curves
+                r.is_offset_valid(offset) # will stop with a valueError
+            _new_routes.append(r.copy_parallel(offset))
+
+        _new_chain = Chain(*_new_routes, StartSta=StartSta)
+        return _new_chain
+
+
     def outRay(self) -> Ray:
         return self.Routes[-1].outRay()
 
@@ -932,6 +962,8 @@ def main():
     ax.plot(as_XY(bad_points)[0],  as_XY(bad_points)[1],      marker='o', color='r', markersize=2, linestyle="None")
     ax.scatter(as_XY(d_os)[0],  as_XY(d_os)[1],               marker='+', color='g')
 
+
+    myChain2 = myChain.copy_parallel(28)
     for rp in rand_points:
         pass
         #print(myChain.inverse(rp))
@@ -947,8 +979,12 @@ def main():
     for p in myChain.patch_list():
         #print(p)
         ax.add_patch(p)
+    for p in myChain2.patch_list():
+        #print(p)
+        ax.add_patch(p)
     plt.axis('scaled')
     plt.show()
+    IPython.embed()
 
 
 if __name__ == "__main__":
