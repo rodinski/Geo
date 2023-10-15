@@ -15,10 +15,10 @@ seg.append(seg[0].copy_parallel(+110))
 #print(seg[-1])
 print(len(seg))
 
-cur.append(Geo.Curve(pts[0], pts[1], Geo.Angle(5, unit='deg')))
+cur.append(Geo.Curve(pts[0], pts[1], Geo.Angle(-70, unit='deg')))
 cur.append(cur[0].copy_parallel(-30))
 cur.append(cur[0].copy_parallel(-60))
-cur.append(cur[0].copy_parallel(-180))
+cur.append(cur[0].copy_parallel(10))
 
 ray.append(Geo.Ray(Geo.Point(12,3), 0.14))
 ray.append(ray[0].copy_parallel(-10))
