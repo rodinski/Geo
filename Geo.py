@@ -404,6 +404,7 @@ class Curve:
 
         self.R = Distance(abs(point1 - point2))
         self.Delta = Delta
+        self.sign_delta = sign(Delta)  #ccw=+   cw=-
         # E distance from curve to PI, value error on cos(pi/2.0))
         self.E = self.R * (1.0 / math.cos(Delta/2.0) - 1.0) #
         bearing_CC_to_PI = cmath.phase(self.PC - self.CC) + self.Delta/2.0
@@ -467,14 +468,14 @@ class Curve:
         """
         For the input point determin if it is within the sweep of the curve
         A curve sweep may cross over the -/+Pi line and the logic becomes difficutly.
-        Howerver all curves have a non-curve part of the whold cirle.  Alwasy one side
+        Howerver all curves are one part of the whold cirle.  Alwasy one wedge
         sweep crosses the -/+Pi line and the other side does not.  Try to work with the
         side that does not.
         """
 
-        # logic is easy to see if point is within the wedge
+        # logic it is easy to see if point is within the wedge
         pc_brg = cmath.phase(self.CC_to_PC)
-        defined_curve = -pi <= (pc_brg + self.Delta)  <= +pi
+        defined_curve = -pi <= (pc_brg + self.Delta)  <= +pi #set a bool
         ob_phase = cmath.phase(obPoint-self.CC)
 
         if defined_curve:  #curve does not cross West axis
@@ -579,68 +580,6 @@ class Curve:
         # from_PC_bearing_R_Delta(cls, pc:Point, brg:float, R:float, delta:float)
         return Curve(_pc, _cc, _D)
 
-
-    '''def distance_and_offset(self, obPoint:Point)->(float, float):
-
-        pc_brg = cmath.phase(self.CC_to_PC)
-        start1 = pc_brg
-
-        #Wwedges that cross the -/+pi boundary have two seperate domains
-        #that need checking. Maybe we can avoid this check . . .
-
-        #Two pie-shaped wedge pieces, only one of them can cross the -/+pi line
-        #only work with the pieces that does not cross this line
-
-        #did we stay in the boundary    -Pi < PC+Delta < +Pi
-        
-       
-        if  -pi <=  (pc_brg + self.Delta) <= +pi: #logic is easy to see if point is within the wedge
-            domain = sorted([ start1 , pc_brg+self.Delta ])
-            if   not domain[0] <= obPoint.phase() <= domain[1]:
-                return Dist_os_tup(None, None)
-        
-        else:
-            #intead of setting two valid ranges can we test the not condition
-            #the outer wedge? 
-
-            #set two valid ranges domain
-            end1 = pi * sign(self.Delta)  #-pi for cw and +pi for ccw
-            start2 = -end1
-            remaining_turn = (start1 + self.Delta) - end1  
-            end2 = start2 +  remaining_turn
-            domain = sorted([start1, end1]) + sorted([start2, end2])
-            if not (domain[0] <= obPoint.phase() <= domain[1] 
-               or 
-               domain[2] <= obPoint.phase() <= domain[3]):
-               return Dist_os_tup(None, None)
-
-
-
-        # Work form the curve CC, create a Segment to obPoint
-        mySegment = Segment(self.CC, obPoint)
-
-        #start from two extremes and work back to the test point, if they 
-        # travel in seperate ways the test must have been beween them
-        mid = mySegment.Bearing()
-        a = Segment(self.CC, self.PC).Bearing()  
-        #b = Segment(self.CC, self.PT).Bearing()
-        #if  norm_as_delta(mid-a) * norm_as_delta(mid-b) <= 0: 
-            # one must have been (pos) one (neg) 
-        distance = Distance(abs(mid-a)*self.R)
-            # difference in lenght then l/r correction based on
-            # the sign of the Delta angle
-            #print(f"{self.R=}")
-            #print(f"{mySegment.Len()=}")
-            #print(f"{sign(self.Delta)=}")
-            
-        offset = Distance((self.R - mySegment.Len())* sign(self.Delta) * -1) # -1 needed to get offset sign correct
-            #R and Len() do not have sign, the only sign has to do with Delta
-            #we need to use correctly use sign(Delta) to get Lt(-) vs Rt(+) sedt correctly
-        return Dist_os_tup(distance, offset)
-
-        #else:
-        #    return (None, None)
-    '''
 
     def move_to(self, distance:float, offset=0.0) -> Point:
         '''Return a point on the curve at distance from the PC'''
