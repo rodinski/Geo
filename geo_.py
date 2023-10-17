@@ -95,8 +95,10 @@ class Point(complex):
         return cls(X, Y)
 
     def phase(self):
-        ''' returns the CCW  angle from Y=0 (East). This is not
-        same as the Bearing! '''
+        """ returns the angle of a complex number from X=0(East). This is not
+        same as the Bearing! 
+        -2pi < phase(complex) < 2pi
+        """
         return cmath.phase(self)
 
     def __repr__(self):
@@ -146,27 +148,30 @@ class Distance(float):
 
 @dataclass
 class Bearing(float):
-    """ Angle from Y=0 (East) in the range of 0 to 2*pi
-    we will want to add and subtract with changes in angles that will be in float"""
+    """ Angle from real axis,(Y=0; East)) this is the same as 
+    cmath.phase(complex_number) we will want to add and subtract with 
+    changes in angles (delta_phase) that will be in float"""
 
     is_Bearing = True
 
     def __init__(self, brg: float):
         self.val = brg
 
-    def Opposite(self):
+    def opposite(self):
         """Pi radians from the Bearing good for backsights in Civil
         Engineering.
         """
-        return normalize(self.val + pi)
+        return Bearing(cmath.phase(cmath.rect(1.00,  self.val + pi)))
 
     def lt_90(self):
         """Return the bearing that is 90 CCW"""
-        return normalize(self.val + pi/2)
+        # cmath.rect( r, theta)  returns a complex
+        return Bearing(cmath.phase(cmath.rect(1.00,  self.val + pi/2.0)))
 
     def rt_90(self):
         """Return the bearing that is 90 CW """
-        return normalize(self.val - pi/2)
+        # cmath.rect( r, theta)  returns a complex
+        return Bearing(cmath.phase(cmath.rect(1.00,  self.val - pi/2.0)))
 
     def __repr__(self):
         return f"Bearing({self.val})"
@@ -189,12 +194,9 @@ class Ray:
         _new_point = self.Point \
                      + cmath.rect(distance, self.Bearing) \
                      + cmath.rect(offset, _bearing_rt_90)
+                     # start + move along arrow + ,move to offset 
         return Point.from_complex(_new_point)
     
-    # delete this
-    #def move_to(self, distance, offset=0):
-    #    return self.set_point(distance, offset) 
-
 
     def set_multipoint(self, start: float = 0.,
                     spacing: float = 0., 
@@ -225,7 +227,7 @@ class Ray:
         Output limited to +/- pi '''
         start = destBearing
         end = self.Bearing
-        return norm_as_delta(start - end)
+        return norm_as_delta(start - end)  # -pi < x < pi
 
     def get_distance_to(self, inPoint: Point) -> float:
         ''' What is the distance along the Ray till the
@@ -233,18 +235,27 @@ class Ray:
         to the Ray '''
         # make a Segment to the new point
         # segments stored as 2 points Bearing is a method()
-        mySeg = Segment(self.Point, inPoint)
-        theta = self.get_angle_to(mySeg.Bearing())
-        ret = math.cos(theta) * mySeg.Len()
+
+        # complex that takes you from ray.Point to inPoint
+        _movement_to_point = inPoint - self.Point 
+        theta = cmath.phase(_movement_to_point) - self.Bearing #angle = diff in phase
+        ret = math.cos(theta) * abs(_movement_to_point)
         return ret
     
     def get_offset_to(self, inPoint: Point) -> float:
         """Return the perpendicular distance from ray to inPoint."""
-        mySeg = Segment(self.Point, inPoint)
-        theta = self.get_angle_to(mySeg.Bearing()) * -1 #(+) offsets have negative theta
-        #-1 above needed to get sign of offset correct.
-        offset = math.sin(theta) * mySeg.Len()
-        return offset
+
+        # complex that takes you from ray.Point to inPoint
+        _movement_to_point = inPoint - self.Point 
+        theta = cmath.phase(_movement_to_point) - self.Bearing #angle = diff in phase
+        ret = math.sin(theta) * abs(_movement_to_point)
+        return ret
+    
+        #mySeg = Segment(self.Point, inPoint)
+        #theta = self.get_angle_to(mySeg.bearing) * -1 #(+) offsets have negative theta
+        ##-1 above needed to get sign of offset correct.
+        #offset = math.sin(theta) * mySeg.length
+        #return offset
 
     def get_distance_offset(self, inPoint: Point) -> tuple:
         _distance = self.get_distance_to(inPoint)
@@ -252,6 +263,7 @@ class Ray:
         return Dist_os_tup(_distance, _offset)
 
     def copy_parallel(self, offset):
+        #new offset the point and use same Bearing
         return Ray( self.set_point(0, offset), self.Bearing)
 
     def patch(self, scale=1, width=1,  **kwargs):
@@ -274,25 +286,27 @@ class Ray:
         _s += f"-- Ray End --"
         return _s
 
-class Line:
-    is_Line = True
-
-    def __init__(self, pt:Point, bearing:Bearing):
-        self.Point = pt
-        self.Bearing = Bearing(bearing)
-    #need to be able to accept an offset
-
-    def __repr__(self):
-        _s = ""
-        _s +=  "Line:\n"
-        _s += f"       Point= {self.Point}"
-        _s += f"       Bearing= {self.Bearing}\n"
-        _s += f"--"
-        return _s
+#class Line:
+#    is_Line = True
+#
+#    def __init__(self, pt:Point, bearing:Bearing):
+#        self.Point = pt
+#        self.Bearing = Bearing(bearing)
+#    #need to be able to accept an offset
+#
+#    def __repr__(self):
+#        _s = ""
+#        _s +=  "Line:\n"
+#        _s += f"       Point= {self.Point}"
+#        _s += f"       Bearing= {self.Bearing}\n"
+#        _s += f"--"
+#        return _s
 
 
 @dataclass
-class Segment(Ray):
+#class Segment(Ray):
+class Segment:
+
     is_Segment = True
     def __init__(self, Pt1:Point, Pt2:Point):
         self.Pt1 = Pt1
@@ -300,29 +314,32 @@ class Segment(Ray):
         self.length = Distance(abs(self.Pt2 - self.Pt1))
         self.bearing = Bearing(cmath.phase(self.Pt2 - self.Pt1))
 
-    def Len(self) -> float:
-        '''Length of Segment '''
-        return self.length
+    #def Len(self) -> float:
+    #    '''Length of Segment '''
+    #    return self.length
 
+    # remove eventually and just use attrabute .bearing
     def Bearing(self) -> Bearing:
         """Bearing of the segment """
         return  Bearing(cmath.phase(self.Pt2 - self.Pt1))
 
     def inRay(self) -> Ray:
         """Point and Bearing for the first Point """
-        return Ray(self.Pt1, self.Bearing())
+        return Ray(self.Pt1, self.bearing)
 
     def outRay(self) -> Ray:
         """Point and Bearing for the second Point """
-        return Ray(self.Pt2, self.Bearing())
-
-    def delta_angle_to_some_bearing(self, inBearing) -> float:
-        """ Reurn the turning angle needed from the inRay to some 
-        given bearing"""
-        return norm_as_delta(self.Bearing() - inBearing)
+        return Ray(self.Pt2, self.bearing)
+    
+    # needs redone b/c either CW or CCW will get you there!
+    # finding the angle to a point is ok but delta_angle implize a direction
+    #def delta_angle_to_some_bearing(self, inBearing) -> float:
+    #    """ Reurn the turning angle needed from the inRay to some 
+    #    given bearing"""
+    #    return norm_as_delta(self.bearing - inBearing)
 
     def get_distance_offset(self, obPoint: Point) -> (float, float):
-        if not (0.0 <= self.inRay().get_distance_to(obPoint) <= self.Len()):
+        if not (0.0 <= self.inRay().get_distance_to(obPoint) <= self.length):
            return Dist_os_tup(None, None)
         else:
            distance = self.inRay().get_distance_to(obPoint)
@@ -335,14 +352,14 @@ class Segment(Ray):
 
 
     def set_point(self, distance: float, offset=0.0) -> Point:
-        if distance > self.Len():
+        if distance > self.length:
             raise ValueError(
-                    f"Distance of {distance} is greater than length of Segment={self.Len()}")
+                    f"Distance of {distance} is greater than length of Segment={self.length}")
         if distance < 0.0:
             raise ValueError(
                     f"Distance of {distance} is negative")
-        _new_point = self.Pt1 + cmath.rect(distance, self.Bearing()) \
-                     + cmath.rect(offset, normalize(self.Bearing() - pi/2.0))
+        _new_point = self.Pt1 + cmath.rect(distance, self.bearing) \
+                     + cmath.rect(offset, self.bearing - pi/2.0)
         return Point.from_complex(_new_point)
 
     # remove this
@@ -355,7 +372,7 @@ class Segment(Ray):
         """Return copy of the Segment, offset has no limits
         """
         _pt1 = self.set_point(0, offset)
-        _pt2 = self.set_point(self.Len(), offset)
+        _pt2 = self.set_point(self.length, offset)
         return Segment(_pt1, _pt2)
 
     def __repr__(self):
@@ -363,11 +380,7 @@ class Segment(Ray):
 
     def __repr__(self):
         s = ""
-        s +=  "Segment:\n"
-        s += f"        Pt1= {self.Pt1}\n"
-        s += f"        Pt2= {self.Pt2}\n"
-        s += f"        L()= {self.Len()}\n"
-        s += f"--"
+        s += f"Segment({self.Pt1.__repr__()}, {self.Pt2.__repr__()}"
         return s
 
 
@@ -405,6 +418,7 @@ class Curve:
         self.R = Distance(abs(point1 - point2))
         self.Delta = Delta
         self.sign_delta = sign(Delta)  #ccw=+   cw=-
+        self.length = abs(self.Delta * self.R)
         # E distance from curve to PI, value error on cos(pi/2.0))
         self.E = self.R * (1.0 / math.cos(Delta/2.0) - 1.0) #
         bearing_CC_to_PI = cmath.phase(self.PC - self.CC) + self.Delta/2.0
@@ -421,12 +435,12 @@ class Curve:
 
         self.Chord = Segment(self.PC, self.PT)
         self.T =  Distance(self.R * math.tan(self.Delta / 2.0))
-        self.inBearing =  self.Chord.Bearing() - self.Delta /2.0
+        self.inBearing =  self.Chord.bearing - self.Delta /2.0
         self.outBearing = self.inBearing + self.Delta
     #need to be able to accept an offset
 
-    def Len(self) -> float:
-        return Distance(self.R * abs(self.Delta))
+    #def Len(self) -> float:
+    #    return Distance(self.R * abs(self.Delta))
 
 
     @classmethod
@@ -496,7 +510,7 @@ class Curve:
             else:
                 return True
 
-    def distance_offset(self, obPoint:Point) -> (float, float):
+    def get_distance_offset(self, obPoint:Point) -> (float, float):
         '''
         Return a tuple of  (distance, os) for a given point.
         Return (None, None) when the point is not within the domain of the curve
@@ -535,15 +549,20 @@ class Curve:
             # need the explementary (or conjugate) angle
             angle = conjugate_angle(brg_obPoint - brg_pc)
         dist = Distance(abs(angle) * self.R)
-        offset = Distance((self.R - mySegment.Len())* sign(self.Delta) * -1) # -1 needed to get offset sign correct
-            # R and Len() do not have sign, the only sign has to do with Delta
+        offset = Distance((self.R - mySegment.length)* sign(self.Delta) * -1) # -1 needed to get offset sign correct
+            # R and length do not have sign, the only sign has to do with Delta
             # we need to use correctly use sign(Delta) to get Lt(-) vs Rt(+) sedt correctly
         return Dist_os_tup(dist, offset)
+
+    # eventually remove this
+    def distance_offset(self, obPoint:Point) -> (float, float):
+        return self.get_distance_offset(obPoint)
 
     def normal_at_point(self, obPoint: Point) -> Bearing:
         if not self.has_dist_os(obPoint):
             return None
-        return Bearing(cmath.phase(obPoint - self.CC))
+        #phase of a movement
+        return Bearing(cmath.phase(obPoint - self.CC)) 
 
     def tangent_at_point(self, obPoint:Point) -> Bearing:
         if not self.has_dist_os(obPoint):
@@ -583,9 +602,9 @@ class Curve:
 
     def set_point(self, distance:float, offset=0.0) -> Point:
         '''Return a point on the curve at distance from the PC'''
-        if distance > self.Len():
+        if distance > self.length:
             raise ValueError(
-                    f"Distance of {distance} is greater than length of Arc={self.Len()}")
+                    f"Distance of {distance} is greater than length of Arc={self.length}")
         if distance < 0:
             raise ValueError(
                     f"Distance of {distance} is negative")
@@ -600,22 +619,19 @@ class Curve:
                     f"{offset=} is too possitive, goes right more than {self.R=}")
 
         #just move to cc turn and move back
-        if abs(distance) <= self.Len():
+        if abs(distance) <= self.length:
             #start a the cc and look a that pc
             #change your bearing by the arc of the movement
+            #distance has no negative so sign(self.Delta) is needed 
             brg_from_cc = cmath.phase(self.CC_to_PC) + sign(self.Delta) * distance / self.R
             #move from the CC exactly one R in this new direction
             _new_point = self.CC + cmath.rect(self.R, brg_from_cc)
             #find new bearing by staring at the the inBearin and adjusting by the arc of movement 
             _new_bearing = self.inBearing + sign(self.Delta) * distance / self.R
             #adjust this new point on the curve by turning right 90deg and going forward or backward
-            _new_point += cmath.rect(offset, normalize(_new_bearing - pi/2.0))
+            _new_point += cmath.rect(offset, normalize(_new_bearing - pi/2.0))              #TEST THIS TO SEE IF normalize is needed
             return Point.from_complex(_new_point)
         return "Error"
-
-    #remove this
-    #def move_to(self, distance, offset):
-    #    return self.set_point(distance, offset)
 
 
     def patch(self, **kwargs):
@@ -651,7 +667,7 @@ class Curve:
         rep += f" R= {self.R}\n"
         rep += f" E= {self.E}\n"
         rep += f"Delta= {self.Delta}\n"
-        rep += f"Len()= {self.Len()}\n"
+        rep += f"length= {self.length}\n"
         rep += f"Chord= {self.Chord}\n"
         rep += f"{cmath.phase(self.CC_to_PC)=}\n"
         rep += f"{cmath.phase(self.CC_to_PT)=}\n"
@@ -684,7 +700,7 @@ class Chain:
 
             x = []
             for i in self.Routes:
-                x.append(i.Len())
+                x.append(i.length)
             start = self.StartSta
             self.RoutesSta = list(itertools.accumulate(x, initial=start))
         else:
@@ -736,7 +752,7 @@ class Chain:
         #print(f"{self.RoutesSta}")
         #Lens =[]
         #for r in self.Routes:
-        #    Lens.append(r.Len())
+        #    Lens.append(r.length)
         #print(f"{Lens=}")
 
         if sta < self.RoutesSta[0]:
@@ -758,7 +774,7 @@ class Chain:
         Return a new chain at the given offset
         """
         # check that all curves have a valid offset
-        _new_routes = ['new_name']
+        _new_routes = ['new_name'] #pre-populate with some name change this with a new __int__ function putting 'name' as only keyward arg
         for r in self.Routes:
             if isinstance(r, Curve):                # test the curves
                 r.is_offset_valid(offset) # will stop with a valueError
@@ -803,7 +819,7 @@ class Chain:
         #Fix this and the inverse for curves!
         subList = []
         for r, s_sta in zip(self.Routes, self.RoutesSta[:-1]):
-            dist, offset = r.distance_offset(point)
+            dist, offset = r.get_distance_offset(point)
             if dist is not None and offset is not None: # skip Nones
                 sta    = round(dist + s_sta, decimals)
                 offset = round(offset,       decimals)
@@ -817,7 +833,8 @@ class Chain:
             return Dist_os_tup(None, None)
         return Dist_os_tup(subList[0][0], subList[0][1])
 
-    def __repr__(self) -> str:
+
+    def __str__(self) -> str:
         _s = ""
         _s += "Chain: " + self.Name +"\n"
         for sta, rte in zip(self.RoutesSta[:-1], self.Routes):
@@ -828,36 +845,31 @@ class Chain:
         _s += "End Chain: " + self.Name
         return _s
 
+    def __repr__(self) -> str:  #needs to have list(Segment( ) and Curve( ))
+        _s = ""
+        _s += "Chain(" + self.Name + ", \n"
+        for rte in  self.Routes:
+            _s += f"{rte.__repr__()}, \n"
+        _s += f"Station: {self.RoutesSta[-1]}, " + "\n"
+        #_s += f"name='{self.name}')"
+        return _s
+
 
 def main():
     import random
-    def randomPoints(pt, noise=5, number=10) -> list:
-      point_list = []
-      for i in range(number):
-          x=pt.X + random.uniform(-noise, +noise)
-          y=pt.Y + random.uniform(-noise, +noise)
-          point_list.append(Point(x, y))
-      return point_list
-    ru = lambda a, b: random.uniform(a, b) # b/w a and b
-    ru_10 = lambda : random.uniform(-10, 10)
-    ru_100 = lambda : random.uniform(90, 110)
 
     R= 15
     points = []
-    x=5 # ru_10()
-    y= 2 #ru_10()
+    x=5 
+    y= 2 
     points.append(Point(x, y))
-    #points.append(Point(ru_100(), points[-1].Y + ru_100()))
     points.append(Point(102, points[-1].Y + 105))
 
     segments = []
     segments.append(Segment(points[-2], points[-1]))
-    seg_length = segments[-1].Len()
+    seg_length = segments[-1].length
     myChain = Chain("default", segments[-1], StartSta=1000)
-    #points.append(myChain.outRay().set_point(20, 0))
-    #rand_R = ru(seg_length/10, seg_length/2)
     rand_R = seg_length/5
-    #rand_delta_n = ru(-90, -90-180)
     rand_delta_n = -70
 
     myChain.addRoute(Curve.from_PC_bearing_R_Delta( 
@@ -867,7 +879,6 @@ def main():
                             delta=Angle(rand_delta_n, unit='deg')
                             )
                      )
-    #points.append(myChain.outRay().set_point(20, 0))
     myChain.addRoute(Curve.from_PC_bearing_R_Delta( 
                             pc=myChain.Routes[-1].outRay().Point, #pc=points[-1], 
                             brg=myChain.Routes[-1].outRay().Bearing,
@@ -890,11 +901,9 @@ def main():
 
     print(myChain.RoutesSta)
 
-    # for i in range(3):
     d_os = []
     y = 10 
-    # for i in  [Point(0, 0), Point(95, y), Point(100, y), Point(110, y), Point(120, y), Point(130, y), Point(140, y), Point(150, y), ]:
-    for loop in range(30):
+    for loop in range(300):
         i = Point(random.uniform(domain['low_x']-20, 2*domain['high_x']), random.uniform(domain['low_y']-20, 2*domain['high_y']))
         inver = myChain.inverse(i, )
         if inver[0] is None:
@@ -932,7 +941,7 @@ def main():
         ax.add_patch(p)
     plt.axis('scaled')
     plt.show()
-    #IPython.embed()
+    IPython.embed()
 
 
 if __name__ == "__main__":
