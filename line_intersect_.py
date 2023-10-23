@@ -1,6 +1,6 @@
-import Geo
-from Geo import  Point, Ray, Segment
-from math import pi, tan , atan2, atan, cos, degrees, radians
+import geo_
+from geo_ import  Point, Ray, Segment, Bearing, xy
+from math import pi, tan , atan2, atan, cos, degrees, radians, isclose
 import matplotlib.pyplot as plt
 from matplotlib import patches
 import random
@@ -10,7 +10,8 @@ def bearing_as_slope( theta:float )->float:
     always return change in y as x INCREASES
     tan(theta) does this with a check of vertical
     """
-    if theta in { -pi/ 2 , pi/2}:
+    if isclose( theta, -pi/2) or isclose( theta, pi/2):
+    #if theta in { Bearing(-pi/ 2) , Bearing(pi/2) }:
         return float( 'inf' )   
     return tan(theta)
 
@@ -19,10 +20,10 @@ def intersect_lines( r1:Ray, r2:Ray)-> Point:
     if r1.Point == r2.Point:
         return r1.Point
     # same bearing?
-    m1 = bearing_as_slope(r1.Bearing)
-    m2 = bearing_as_slope(r2.Bearing)
+    m1 = bearing_as_slope(r1.bearing)
+    m2 = bearing_as_slope(r2.bearing)
 
-    if m1 == m2:
+    if isclose(m1, m2):
         return None
     # set x
     if m1 == float('inf'):
@@ -32,9 +33,9 @@ def intersect_lines( r1:Ray, r2:Ray)-> Point:
     else:
         x = (-r2.Point.X*m2 -r1.Point.Y  +r1.Point.X*m1 +r2.Point.Y ) / (m1-m2) 
     #set y
-    if m1 == 0.0:
+    if isclose(m1, 0.0):
         y = r1.Point.Y
-    elif m2 == 0.0:
+    elif isclose(m2, 0.0):
         y = r2.Point.Y
     else:
         if m1 != float('inf'):
@@ -44,13 +45,6 @@ def intersect_lines( r1:Ray, r2:Ray)-> Point:
     return Point(x, y)
 
 
-def xy( list_of_points ):
-    x = list()
-    y = list()
-    for i in list_of_points:
-        x.append(i.X)
-        y.append(i.Y)
-    return (x,y)
 
 def rand_bearing( ):
     return random.random() * 4*pi - 2*pi 
@@ -84,11 +78,11 @@ def main():
     segments = []
     for x in range(100):
         theta_btm = random.random()*pi/2
-        segment_btm = Ray(Point(0,0), theta_btm)
+        ray_btm = Ray(Point(0,0), Bearing(theta_btm) )
 
         theta_top = theta_btm-pi/2
-        segment_top = Ray(Point(0,D), theta_top)
-        intersection_pt = intersect_lines(segment_top, segment_btm) 
+        ray_top = Ray(Point(0,D), Bearing(theta_top))
+        intersection_pt = intersect_lines(ray_top, ray_btm) 
 
         c_pts.append(intersection_pt)
         segments.append(Segment(Point(0,0), intersection_pt))

@@ -1,12 +1,28 @@
-""" Module for various geometry entities
-to be used in Civil Engineering
-makes use of python's complex numbers as
-x, y pairs.
+""" Module for various geometry entities to be used in Civil 
+Engineering makes use of python's complex numbers as x, y pairs.
+
+Every complex number has a phase = cmath.phase( complex) it is
+the angle from the real axis it only goes from -pi to pi.  This
+is good for finding one and only one direction.
+
+It has proplems when adds or subracts will cross over the +/- pi
+break.  
+
+Let "phase" method determin a global _direction_
+
+Let  Angle(floats) determin changes in a direction.  Angles have to
+have  a direction +/- (ccw/cw) 
+
+Additions of Bearing and Angle are possible but they result in
+a float that must be converted back to a Bearing.
+(Future work would be to overload the Bearing's +, - methods)
+
 """
 
 import math
-from math import e, pi, cos, sin, tan
+from math import e, pi, cos, sin, tan, isclose
 import cmath
+from cmath import phase, rect, polar
 from dataclasses import dataclass
 from collections import namedtuple
 import itertools
@@ -31,21 +47,25 @@ def sign(in_val) -> int:
     if in_val < 0:
         return int(-1)
 
-def normalize(angle: float) -> float:
-    """ Return radians between 0 and 2pi
-    for any input.
-    """
-    remain = math.fmod(angle, (2*pi))
-    if remain < 0:
-        return remain + 2*pi
-    return remain
+# normalize_as_phase = -pi pi
+#def float_to_phase(inTheta: float):
+#    return phase(rect(1.0,inTheta)) #(-π, π]
 
-def norm_as_delta(angle: float) -> float:
-    """ normalize to between -pi and pi
-    this is better for a delta in bearing
-    not the bearing itself.  Note, all bearings
-    are still reachable."""
-    return normalize(angle + pi) - pi
+# turns should go from (-2π, 2π] AND KEEP there sign
+def normalize_angle(theta:float):
+    # keep chiping away as needed
+    while theta < 2*-pi or theta > 2*pi:
+        theta = theta - sign(theta)*2*pi
+    return theta
+
+def normalize_bearing(theta:float):
+    # keep chiping away as needed
+    while theta < -pi or theta > pi:
+        theta = theta - sign(theta)*2*pi
+    if isclose( abs(theta), pi):
+        theta = pi
+    return theta
+
 
 def conjugate_angle(inAngle):
     if abs(inAngle) > 2*pi:
@@ -55,9 +75,6 @@ def conjugate_angle(inAngle):
     # change the sign b/c we would going other way around the circle
     return -1.0*sign(inAngle)*(2*pi-abs(inAngle))
 
-def change_in_bearing(start: float, end: float) -> float:
-    ''' Returns the change in bearing needed to get from start to end'''
-    return norm_as_delta(normalize(end) - normalize(start))
 
 def xy(points_list: list) -> tuple:
     """Return a list of .x and a list of .y properites
@@ -97,84 +114,96 @@ class Point(complex):
     def phase(self):
         """ returns the angle of a complex number from X=0(East). This is not
         same as the Bearing! 
-        -2pi < phase(complex) < 2pi
+        -pi < phase(complex) < pi
         """
-        return cmath.phase(self)
+        return Bearing(cmath.phase(self))  #technically this is a bearing
 
     def __repr__(self):
         return f"Point({self.val.real:.4f}, {self.val.imag:0.4f})"
 
     def __str__(self):
         return f"Point x={self.val.real:.4f}, y={self.val.imag:0.4f}"
-
+ 
+ 
 class Angle(float):
     '''Angle will be stored as a float with a nice __str__().
     All math funtions will return a float without the __str__()
     if unit='deg' is used the input should be in degrees and a
     conversion will happen so the internal storage will be radians
+
+    Angles are relative and have no global directoin buth they do
+    have a significant sign (ccw vs cw).
+
+    normalize_angle return a float in range (-2π, 2π)
     '''
     is_float = True
 
-
-    def __new__(cls, real, unit='rad'):
+    def __new__(cls, _numb, unit='rad'):
         if unit.lower() == 'rad':
-            real = float(real)
+            _numb = float(_numb)
         if unit.lower() == 'deg':
-            real = float(math.radians(real))
-        return float.__new__(cls, real)
+            _numb = float(math.radians(_numb))
+        _numb = normalize_angle(_numb)
+        return float.__new__(cls, _numb)
 
-
-    def __init__(self, real: float, unit='rad'):
-        # .real attibute should have been set in __new__
-        #
+    def __init__(self, _numb: float, unit='rad'):
         self.unit = unit
 
     def __str__(self):
         return '%g rad  %g deg' % (self, math.degrees(self))
 
-    def __repr(self):
-        return "Angle({self:,f})"
+    def __repr__(self):
+        return f"Angle({self:,f})"
 
 class Distance(float):
     is_float = True
 
     def __init__(self, flt: float):
-        Decimals = int(6)
+        Decimals = int(4)
         self.val = round(flt, Decimals)
 
     def __repr__(self):
         return f"Distance({self.val:,f})"
 
-
-@dataclass
 class Bearing(float):
     """ Angle from real axis,(Y=0; East)) this is the same as 
     cmath.phase(complex_number) we will want to add and subtract with 
     changes in angles (delta_phase) that will be in float"""
 
-    is_Bearing = True
+    def __new__(cls, _ang, unit='rad'):
+        if unit.lower() == 'rad':
+            _ang = float(_ang)
+        if unit.lower() == 'deg':
+            _ang = float(math.radians(_ang))
+        _ang = normalize_bearing(_ang)
+        return float.__new__(cls, _ang)
 
-    def __init__(self, brg: float):
-        self.val = brg
+
+    def __init__(self, real: float, unit='rad'):
+        self.unit = unit
+
 
     def opposite(self):
         """Pi radians from the Bearing good for backsights in Civil
         Engineering.
         """
-        return Bearing(cmath.phase(cmath.rect(1.00,  self.val + pi)))
+        return Bearing(cmath.phase(cmath.rect(1.00, self + pi)))
 
     def lt_90(self):
         """Return the bearing that is 90 CCW"""
         # cmath.rect( r, theta)  returns a complex
-        return Bearing(cmath.phase(cmath.rect(1.00,  self.val + pi/2.0)))
+        return Bearing(cmath.phase(cmath.rect(1.00,  self + pi/2.0)))
 
     def rt_90(self):
         """Return the bearing that is 90 CW """
         # cmath.rect( r, theta)  returns a complex
-        return Bearing(cmath.phase(cmath.rect(1.00,  self.val - pi/2.0)))
+        return Bearing(cmath.phase(cmath.rect(1.00,  self - pi/2.0)))
+
+    def __str__(self):
+        return '%g rad  %g deg' % (self, math.degrees(self))
 
     def __repr__(self):
-        return f"Bearing({self.val})"
+        return f"Bearing({self:f})"
 
 @dataclass
 class Ray:
@@ -183,16 +212,26 @@ class Ray:
     is_Ray = True
 
     def __init__(self, pt: Point, brg: Bearing):
+
+        if not isinstance(pt, Point):
+            raise TypeError(
+                    f"Provide a Point object")
+        # print(f"{isinstance(brg, Bearing)=}")
+        if not isinstance(brg, Bearing):
+            raise TypeError(
+                    f"Provide a Bearing (not an Angle or float)")
+
         self.Point = pt
-        self.Bearing = Bearing(brg)
+        self.bearing = brg
 
     def set_point(self, distance: float, offset=0.0) -> Point:
         ''' Return a point at the given distance and offset from the Ray origin 
         '''
-        _bearing = self.Bearing
-        _bearing_rt_90 = self.Bearing.rt_90()
+
+        _bearing = self.bearing
+        _bearing_rt_90 = self.bearing.rt_90()
         _new_point = self.Point \
-                     + cmath.rect(distance, self.Bearing) \
+                     + cmath.rect(distance, self.bearing) \
                      + cmath.rect(offset, _bearing_rt_90)
                      # start + move along arrow + ,move to offset 
         return Point.from_complex(_new_point)
@@ -218,16 +257,21 @@ class Ray:
         ''' Are two Rays equal?'''
         if isinstance(ob, Ray) and \
            self.Point == ob.Point and \
-           self.Bearing == ob.Bearing:
+           self.bearing == ob.bearing:
            return True
         return False
 
-    def get_angle_to(self, destBearing: float) -> float:
-        ''' Return the turn angle needed to get at some destination bearing.
-        Output limited to +/- pi '''
+    def get_angle_to_bearing(self, destBearing: float) -> float:
+        """ Return the turn angle needed to get at some destination bearing.
+        Output limited to +/- pi. 
+        Rotate both rays by the negative of the self.bearing, then the phase 
+        of the destination is the angle_to_bearing.
+        rotation of destination = start.bearing - end.bearing and
+        rotation of self bearing = self.bearing - self.bearing = 0
+        """
         start = destBearing
-        end = self.Bearing
-        return norm_as_delta(start - end)  # -pi < x < pi
+        end = self.bearing
+        return start - end  # -pi < x < pi
 
     def get_distance_to(self, inPoint: Point) -> float:
         ''' What is the distance along the Ray till the
@@ -238,7 +282,7 @@ class Ray:
 
         # complex that takes you from ray.Point to inPoint
         _movement_to_point = inPoint - self.Point 
-        theta = cmath.phase(_movement_to_point) - self.Bearing #angle = diff in phase
+        theta = cmath.phase(_movement_to_point) - self.bearing #angle = diff in phase
         ret = math.cos(theta) * abs(_movement_to_point)
         return ret
     
@@ -247,7 +291,7 @@ class Ray:
 
         # complex that takes you from ray.Point to inPoint
         _movement_to_point = inPoint - self.Point 
-        theta = cmath.phase(_movement_to_point) - self.Bearing #angle = diff in phase
+        theta = cmath.phase(_movement_to_point) - self.bearing #angle = diff in phase
         ret = math.sin(theta) * abs(_movement_to_point)
         return ret
     
@@ -264,7 +308,7 @@ class Ray:
 
     def copy_parallel(self, offset):
         #new offset the point and use same Bearing
-        return Ray( self.set_point(0, offset), self.Bearing)
+        return Ray( self.set_point(0, offset), self.bearing)
 
     def patch(self, scale=1, width=1,  **kwargs):
         """Use matplotlib.patches for consistency, method patches.Arc
@@ -272,17 +316,17 @@ class Ray:
         for the Segemnts. """
 
         return patches.Arrow (self.Point.X, self.Point.Y, \
-                             scale *cos(self.Bearing), scale *sin(self.Bearing), \
+                             scale *cos(self.bearing), scale *sin(self.bearing), \
                              width,  **kwargs)
 
     def __repr__(self):
-        return f"Ray(self.Point.__repr__(), self.Bearing.__repr__())"
+        return f"Ray(self.Point.__repr__(), self.bearing.__repr__())"
 
     def __str__(self):
-        _s = ""
+        _s = "\n"
         _s +=  "Ray:\n"
-        _s += f"       {self.Point}\n"
-        _s += f"       {self.Bearing}\n"
+        _s += f"       .{self.Point}\n"
+        _s += f"       .{self.bearing}\n"
         _s += f"-- Ray End --"
         return _s
 
@@ -291,14 +335,14 @@ class Ray:
 #
 #    def __init__(self, pt:Point, bearing:Bearing):
 #        self.Point = pt
-#        self.Bearing = Bearing(bearing)
+#        self.bearing = Bearing(bearing)
 #    #need to be able to accept an offset
 #
 #    def __repr__(self):
 #        _s = ""
 #        _s +=  "Line:\n"
 #        _s += f"       Point= {self.Point}"
-#        _s += f"       Bearing= {self.Bearing}\n"
+#        _s += f"       Bearing= {self.bearing}\n"
 #        _s += f"--"
 #        return _s
 
@@ -309,6 +353,13 @@ class Segment:
 
     is_Segment = True
     def __init__(self, Pt1:Point, Pt2:Point):
+
+        if not isinstance(Pt1, Point):
+            raise TypeError(
+                    f"Provide a Point object")
+        if not isinstance(Pt2, Point):
+            raise TypeError(
+                    f"Provide a Point object")
         self.Pt1 = Pt1
         self.Pt2 = Pt2
         self.length = Distance(abs(self.Pt2 - self.Pt1))
@@ -319,9 +370,9 @@ class Segment:
     #    return self.length
 
     # remove eventually and just use attrabute .bearing
-    def Bearing(self) -> Bearing:
-        """Bearing of the segment """
-        return  Bearing(cmath.phase(self.Pt2 - self.Pt1))
+    #def Bearing(self) -> Bearing:
+    #    """Bearing of the segment """
+    #    return  Bearing(cmath.phase(self.Pt2 - self.Pt1))
 
     def inRay(self) -> Ray:
         """Point and Bearing for the first Point """
@@ -383,14 +434,13 @@ class Segment:
         s += f"Segment({self.Pt1.__repr__()}, {self.Pt2.__repr__()}"
         return s
 
-
     def patch(self, **kwargs):
-        """Use matplotlib.patches for consistency, method patches.Arc
-        works best for class Curve so we will also use method patches.Polygon
-        for the Segemnts. """
-        return patches.Polygon(((self.Pt1.X, self.Pt1.Y), \
-                                  (self.Pt2.X, self.Pt2.Y), \
-                                ), fill=False, closed=False, **kwargs)
+            """Use matplotlib.patches for consistency, method patches.Arc
+            works best for class Curve so we will also use method patches.Polygon
+            for the Segemnts. """
+            return patches.Polygon(((self.Pt1.X, self.Pt1.Y), \
+                                      (self.Pt2.X, self.Pt2.Y), \
+                                    ), fill=False, closed=False, **kwargs)
 @dataclass
 class Curve:
     is_Curve = True
@@ -400,8 +450,13 @@ class Curve:
     -2pi< Delta < 2pi and not zero
     """
 
-    def __init__(self, point1:Point, point2:Point,  Delta:Angle , *args, **kwargs):
-        if abs(point1 - point2) < 0.1:
+    def __init__(self, Pt1:Point, Pt2:Point,  Delta:Angle , *args, **kwargs):
+
+        if not isinstance(Pt1, Point):
+            raise TypeError(
+                    f"Provide a Point object")
+
+        if abs(Pt1 - Pt2) < 0.1:
             raise ValueError(
                 "%s.__new__ radius is too small" % self)
         if abs(Delta == 0):
@@ -409,13 +464,13 @@ class Curve:
                 "%s.__new__ Delta can not be zero" % self)
 
 
-        self.PC = point1   #Point
-        self.CC = point2   #Point
+        self.PC = Pt1   #Point
+        self.CC = Pt2   #Point
         self.PC_to_CC = self.CC - self.PC   #Complex
         self.CC_to_PC = self.PC - self.CC   #Complex
         self.PC_to_CC_asSeg = Segment(self.CC, self.PC) #Segment
 
-        self.R = Distance(abs(point1 - point2))
+        self.R = Distance(abs(Pt1 - Pt2))
         self.Delta = Delta
         self.sign_delta = sign(Delta)  #ccw=+   cw=-
         self.length = abs(self.Delta * self.R)
@@ -435,8 +490,8 @@ class Curve:
 
         self.Chord = Segment(self.PC, self.PT)
         self.T =  Distance(self.R * math.tan(self.Delta / 2.0))
-        self.inBearing =  self.Chord.bearing - self.Delta /2.0
-        self.outBearing = self.inBearing + self.Delta
+        self.inBearing =  Bearing(self.Chord.bearing - self.Delta /2.0)
+        self.outBearing = Bearing(self.inBearing + self.Delta)
     #need to be able to accept an offset
 
     #def Len(self) -> float:
@@ -453,15 +508,15 @@ class Curve:
     @classmethod
     def from_Ray_T_Delta(cls, _inRay:Ray, _T:float, delta:float):
         _pc = _inRay.Point
-        _start_bearing= _inRay.Bearing
+        _start_bearing= _inRay.bearing
         _R = math.cos(delta/2.0) * _T
         return cls.from_PC_bearing_R_Delta(_pc, _start_bearing, _R, delta)
 
     def inRay(self) -> Ray:
-        return Ray(self.PC, Bearing(self.inBearing))
+        return Ray(self.PC, self.inBearing)  #should already be Point and Bearing
 
     def outRay(self) -> Ray:
-        return Ray(self.PT, Bearing(self.outBearing))
+        return Ray(self.PT, self.outBearing)  #should already be Point and Bearing
 
     def is_offset_valid(self, offset: float) -> bool:
         """
@@ -572,7 +627,7 @@ class Curve:
             turn = pi/2
         else:
             turn = -pi/2
-        return Bearing(norm + turn)
+        return Bearing(norm + turn)  # good bearing+angle=float
 
     def copy_parallel(self, offset):
         """Return a curve with a changed radius"""
@@ -629,7 +684,7 @@ class Curve:
             #find new bearing by staring at the the inBearin and adjusting by the arc of movement 
             _new_bearing = self.inBearing + sign(self.Delta) * distance / self.R
             #adjust this new point on the curve by turning right 90deg and going forward or backward
-            _new_point += cmath.rect(offset, normalize(_new_bearing - pi/2.0))              #TEST THIS TO SEE IF normalize is needed
+            _new_point += cmath.rect(offset, _new_bearing - pi/2.0) 
             return Point.from_complex(_new_point)
         return "Error"
 
@@ -677,8 +732,8 @@ class Curve:
         return rep
 
 class Chain:
-    '''A list of connected segment and or curves
-    '''
+    """A list of connected segments and/or curves
+    """
     is_Curve = True
     def __init__(self, name, *args, StartSta=None, **kwargs):
         self.Name = name
@@ -726,7 +781,7 @@ class Chain:
         #curve add
         if math.isinf(R) and Delta != 0:
             R = distance / Delta
-            self.addRoute(Curve.from_PC_bearing_R_Delta(lastRay.Point, lastRay.Bearing, R, Delta))
+            self.addRoute(Curve.from_PC_bearing_R_Delta(lastRay.Point, lastRay.bearing, R, Delta))
             return self.Routes[-1].outRay
 
 
@@ -764,10 +819,6 @@ class Chain:
             if self.RoutesSta[i] <= sta and sta <= self.RoutesSta[i+1]:
                 distance = sta - self.RoutesSta[i]
                 return self.Routes[i].set_point(distance, offset)
-
-    #delete this 
-    #def move_to(self, sta, offset):
-    #    return self.set_point(sta, offset)
 
     def copy_parallel(self, offset:float, StartSta=None):
         """
@@ -874,14 +925,14 @@ def main():
 
     myChain.addRoute(Curve.from_PC_bearing_R_Delta( 
                             pc=myChain.Routes[-1].outRay().Point, #pc=points[-1], 
-                            brg=myChain.Routes[-1].outRay().Bearing,
+                            brg=myChain.Routes[-1].outRay().bearing,
                             R=rand_R,
                             delta=Angle(rand_delta_n, unit='deg')
                             )
                      )
     myChain.addRoute(Curve.from_PC_bearing_R_Delta( 
                             pc=myChain.Routes[-1].outRay().Point, #pc=points[-1], 
-                            brg=myChain.Routes[-1].outRay().Bearing,
+                            brg=myChain.Routes[-1].outRay().bearing,
                             R=rand_R,
                             delta=Angle(-rand_delta_n, unit='deg')
                             )
@@ -928,7 +979,7 @@ def main():
             if myChain.Routes[c].normal_at_point(rp):
                 n1 = myChain.Routes[c].normal_at_point(rp)
                 t1 = myChain.Routes[c].tangent_at_point(rp)
-                print(c, n1, t1, n1-t1)
+                # print(c, n1, t1, n1-t1)
 
     # input()
     for s in segments:
@@ -941,7 +992,10 @@ def main():
         ax.add_patch(p)
     plt.axis('scaled')
     plt.show()
-    IPython.embed()
+    #IPython.embed()
+    a = Bearing(4)
+    print(a)
+    print(a.__repr__())
 
 
 if __name__ == "__main__":
