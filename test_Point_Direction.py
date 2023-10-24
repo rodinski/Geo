@@ -7,7 +7,7 @@ from math import pi, isclose
 
 import random
 
-class test_Point(TestCase):
+class test_01_Point(TestCase):
 
     def test_Point_from_complex_x(self):
         """
@@ -23,7 +23,7 @@ class test_Point(TestCase):
             with self.subTest(f"test_Point_from_complex_y{n}"):
                 self.assertEqual(Point(x, y).Y, float(y) )
 
-    def test_Point_phase(self):
+    def test_02_Point_phase(self):
         """
         Test Point.phase() 
         """
@@ -44,7 +44,7 @@ class test_Point(TestCase):
                 self.assertEqual(Point(x,y).phase(), Bearing(math.atan2(y,x)) )
                 self.assertEqual(Point(x,y), Point.from_complex( complex(x,y)) )
 
-class test_Direction(TestCase):
+class test_03_Direction(TestCase):
     def test_Angle(self):
         """
         Test Angle(x, unit='deg' ) 
@@ -59,7 +59,7 @@ class test_Direction(TestCase):
                 self.assertTrue(math.isclose(Angle(deg, unit='deg'), Angle(rad)))
 
 
-    def test_Bearing(self):
+    def test_04_Bearing(self):
         """
         Test Bearing(x, unit='deg' ) 
         """
@@ -98,7 +98,7 @@ class test_Direction(TestCase):
                     rel_tol=0.000001, abs_tol=0.000001))
 
 
-    def test_Angle(self):
+    def test_05_Angle(self):
         """
         Test Angle(x, unit='deg' ) 
         """

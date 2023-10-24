@@ -1,5 +1,5 @@
 import itertools
-from Geo import Point, Segment, Curve, Chain, Ray, Angle, xy
+from geo_ import Point, Bearing, Angle, Segment, Curve, Chain, Ray, Angle, xy
 import Geo
 import IPython
 import matplotlib.pyplot as plt
@@ -8,7 +8,7 @@ from math import pi
 from collections import defaultdict
 import collections
 import pprint as pp
-from curve_intersection import ray_curve_intersect
+from curve_intersection_ import ray_curve_intersect
 
 
 # setup for defaultdict to always produce a dict
@@ -41,16 +41,16 @@ for span, sweep in zip(spans, sweeps):
     bent += 1
     print(f"{span=}    {sweep=}")
     print(span)
-    pt = curve_1.move_to(span, 0)  # locate bents on curve_1 
+    pt = curve_1.set_point(span, 0)  # locate bents on curve_1 
     ref = t['pts']['bent'][bent] 
     ref['pt']['mdx'][1] = pt              # far point on Ray
     pts.append(pt)
     
     # bearing of brg line = tang + sweep 
-    brg_brg = curve_1.tangent_at_point(pt) + Angle(sweep, unit='deg')
+    brg_brg = Bearing(curve_1.tangent_at_point(pt) + Angle(sweep, unit='deg'))
     ref['ray']  = Ray(pt, brg_brg)
-    ref['pt']['left'] = ref['ray'].move_to(100) 
-    ref['pt']['right'] = ref['ray'].move_to(-100) 
+    ref['pt']['left'] = ref['ray'].set_point(100) 
+    ref['pt']['right'] = ref['ray'].set_point(-100) 
     pts.append(pt)
     for item in [ 'left', 'right']:            
         pts.append(ref['pt'][item])
@@ -79,7 +79,7 @@ t['int_braces']['mdx'][1] = []
 brace_pts = []
 for b in brace:
     print(b)
-    b_pt = curve_1.move_to(b, 0)
+    b_pt = curve_1.set_point(b, 0)
     brace_pts.append(b_pt)
     t['int_braces']['mdx'][1].append(b_pt)
 
@@ -87,7 +87,7 @@ for mdx_g in [2, 3, 4, 5]:
     t['int_braces']['mdx'][mdx_g] = list()
     c_ref = t['mdx_g'][mdx_g]['circle']
     for pt in t['int_braces']['mdx'][1]:   #each brace on mdx_1
-        r_ref = Ray(cc, Segment(cc, pt).Bearing())
+        r_ref = Ray(cc, Segment(cc, pt).bearing)
         pt = ray_curve_intersect(r_ref, c_ref)[1]
         brace_pts.append(pt)
         t['int_braces']['mdx'][mdx_g].append(pt)
@@ -109,4 +109,23 @@ plt.axis('scaled')
 plt.show()
 
 
-IPython.embed()
+
+def is_iterable(obj):
+    try:
+        iter(obj)
+        return True
+    except TypeError:
+        return False
+depth = 0
+def walk( ob, depth=0 ):
+    for k in ob:
+        if is_iterable(ob[k]):
+            depth += 2
+            print( " "*depth + f"{k} ->")
+            walk(ob[k], depth=depth)
+            depth += -2
+        else: 
+            print(k, is_iterable(ob[k]))
+walk(t)
+#IPython.embed()
+
