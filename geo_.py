@@ -118,6 +118,14 @@ class Point(complex):
         """
         return Bearing(cmath.phase(self))  #technically this is a bearing
 
+    def equal(self, ob):
+        ''' Are two Points equal?'''
+        if isinstance(ob, Point) and \
+                      math.isclose(self.X, ob.X) and \
+                      math.isclose(self.Y, ob.Y):
+           return True
+        return False
+
     def __repr__(self):
         return f"Point({self.val.real:.4f}, {self.val.imag:0.4f})"
 
@@ -148,6 +156,7 @@ class Angle(float):
 
     def __init__(self, _numb: float, unit='rad'):
         self.unit = unit
+        self.sign = sign(self) 
 
     def __str__(self):
         return '%g rad  %g deg' % (self, math.degrees(self))
@@ -262,7 +271,7 @@ class Ray:
         return False
 
     def get_angle_to_bearing(self, destBearing: float) -> float:
-        """ Return the turn angle needed to get at some destination bearing.
+        """ Return the turn angles needed to get at some destination bearing.
         Output limited to +/- pi. 
         Rotate both rays by the negative of the self.bearing, then the phase 
         of the destination is the angle_to_bearing.
@@ -426,12 +435,10 @@ class Segment:
         _pt2 = self.set_point(self.length, offset)
         return Segment(_pt1, _pt2)
 
-    def __repr__(self):
-        return  f"Segment( Point({self.Pt1.__repr__()}, Point({self.Pt2.__repr__()})"
 
     def __repr__(self):
         s = ""
-        s += f"Segment({self.Pt1.__repr__()}, {self.Pt2.__repr__()}"
+        s += f"Segment({self.Pt1.__repr__()}, {self.Pt2.__repr__()})"
         return s
 
     def patch(self, **kwargs):
@@ -714,36 +721,42 @@ class Curve:
        #ret.append(Segment(self.PI, self.PT).patch(linestyle=':'))
        return ret
 
-    def __repr__(self):
+    def __str__(self):
         rep =  "Curve:\n"
-        rep += f"PC= {self.PC}\n"
-        rep += f"CC= {self.CC}\n"
-        rep += f"PT= {self.PT}\n"
-        rep += f" R= {self.R}\n"
-        rep += f" E= {self.E}\n"
+        rep += f"  PC= {self.PC}\n"
+        rep += f"  CC= {self.CC}\n"
+        rep += f"  PT= {self.PT}\n"
+        rep += f"   R= {self.R}\n"
+        rep += f"   E= {self.E}\n"
         rep += f"Delta= {self.Delta}\n"
         rep += f"length= {self.length}\n"
         rep += f"Chord= {self.Chord}\n"
         rep += f"{cmath.phase(self.CC_to_PC)=}\n"
         rep += f"{cmath.phase(self.CC_to_PT)=}\n"
-        rep += f"{self.CC_to_PC - self.CC_to_PT=}\n"
+        rep += f"{self.CC_to_PC - self.CC_to_PT=}"
         #rep += f"-- Curve end --\n"
         # the segment finish up with a -- so last line not needed
         return rep
 
+    def __repr__(self):
+        rep =  "Curve:(\n"
+        rep += f"  {self.PC.__repr__()}, \n"
+        rep += f"  {self.CC.__repr__()}, \n"
+        rep += f"  {self.Delta.__repr__()})"
+        return rep
 class Chain:
     """A list of connected segments and/or curves
     """
     is_Curve = True
-    def __init__(self, name, *args, StartSta=None, **kwargs):
+    def __init__(self,  *args, name="no_name", start_station=None, **kwargs):
         self.Name = name
         self.Routes = []
         self.RoutesSta = []
 
-        if StartSta == None:
-            self.StartSta=0.0
+        if start_station == None:
+            self.start_station=0.0
         else:
-            self.StartSta=StartSta
+            self.start_station=float(start_station)
 
         for ob in args:
             self.addRoute(ob)
@@ -756,7 +769,7 @@ class Chain:
             x = []
             for i in self.Routes:
                 x.append(i.length)
-            start = self.StartSta
+            start = self.start_station
             self.RoutesSta = list(itertools.accumulate(x, initial=start))
         else:
             raise ValueError(
@@ -820,18 +833,19 @@ class Chain:
                 distance = sta - self.RoutesSta[i]
                 return self.Routes[i].set_point(distance, offset)
 
-    def copy_parallel(self, offset:float, StartSta=None):
+    def copy_parallel(self, offset:float, start_station=None, name='parallel_copy'):
         """
         Return a new chain at the given offset
         """
         # check that all curves have a valid offset
-        _new_routes = ['new_name'] #pre-populate with some name change this with a new __int__ function putting 'name' as only keyward arg
+        _new_routes = [] #pre-populate with some name change this with a new __int__ function putting 'name' as only keyward arg
         for r in self.Routes:
             if isinstance(r, Curve):                # test the curves
                 r.is_offset_valid(offset) # will stop with a valueError
             _new_routes.append(r.copy_parallel(offset))
 
-        _new_chain = Chain(*_new_routes, StartSta=StartSta)
+        #import pdb; pdb.set_trace()
+        _new_chain = Chain( *_new_routes, start_station=start_station, name=name)
         return _new_chain
 
 
@@ -887,22 +901,23 @@ class Chain:
 
     def __str__(self) -> str:
         _s = ""
-        _s += "Chain: " + self.Name +"\n"
+        _s += f"Chain:\n   {self.Name=}\n"
         for sta, rte in zip(self.RoutesSta[:-1], self.Routes):
             _s += f"<< Station: {sta} >>" + "\n"
             _s += rte.__str__() + "\n"
 
         _s += f"<< Station: {self.RoutesSta[-1]} >>" + "\n"
-        _s += "End Chain: " + self.Name
+        _s += f"End Chain:  name={self.Name}"
         return _s
 
     def __repr__(self) -> str:  #needs to have list(Segment( ) and Curve( ))
         _s = ""
-        _s += "Chain(" + self.Name + ", \n"
+        _s += "Chain(\n" 
         for rte in  self.Routes:
             _s += f"{rte.__repr__()}, \n"
-        _s += f"Station: {self.RoutesSta[-1]}, " + "\n"
-        #_s += f"name='{self.name}')"
+        _s += f"  name='{self.Name}', \n"
+        _s += f"  start_station={self.start_station}\n"
+        _s += f")"
         return _s
 
 
@@ -919,7 +934,7 @@ def main():
     segments = []
     segments.append(Segment(points[-2], points[-1]))
     seg_length = segments[-1].length
-    myChain = Chain("default", segments[-1], StartSta=1000)
+    myChain = Chain(segments[-1], name="default",  StartSta=1000)
     rand_R = seg_length/5
     rand_delta_n = -70
 
@@ -992,11 +1007,9 @@ def main():
         ax.add_patch(p)
     plt.axis('scaled')
     plt.show()
+    print("\n", myChain2, "\n")
+    print( myChain2.__repr__() )
     #IPython.embed()
-    a = Bearing(4)
-    print(a)
-    print(a.__repr__())
-
 
 if __name__ == "__main__":
     main()
