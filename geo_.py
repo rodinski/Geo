@@ -87,6 +87,15 @@ def xy(points_list: list) -> tuple:
     return(x, y)
 
 
+def translate_rotate( point, dx, dy, rotation=0.0 ):
+    x_prime = point.X * cos(rotation)  + point.Y * sin(rotation)  + dx
+    y_prime = point.Y * cos(rotation)  - point.X * sin(rotation)  + dy
+    return Point(x_prime, y_prime)
+
+
+    
+
+
 class Point(complex):
     """ At new Point called with  Point(x, y) or as 
     Point.from_complex(complex_number)
@@ -173,6 +182,11 @@ class Distance(float):
 
     def __repr__(self):
         return f"Distance({self.val:,f})"
+
+    def __lt__(self, other):
+        if self.val <other:
+            return True
+        return False
 
 class Bearing(float):
     """ Angle from real axis,(Y=0; East)) this is the same as 
@@ -301,7 +315,7 @@ class Ray:
         # complex that takes you from ray.Point to inPoint
         _movement_to_point = inPoint - self.Point 
         theta = cmath.phase(_movement_to_point) - self.bearing #angle = diff in phase
-        ret = math.sin(theta) * abs(_movement_to_point)
+        ret = -1 * math.sin(theta) * abs(_movement_to_point) #needs a sign change for rt offset (+)
         return ret
     
         #mySeg = Segment(self.Point, inPoint)
@@ -316,7 +330,7 @@ class Ray:
         return Dist_os_tup(_distance, _offset)
 
     def copy_parallel(self, offset):
-        #new offset the point and use same Bearing
+        """New offset the point and use same Bearing"""
         return Ray( self.set_point(0, offset), self.bearing)
 
     def patch(self, scale=1, width=1,  **kwargs):
@@ -391,6 +405,11 @@ class Segment:
         """Point and Bearing for the second Point """
         return Ray(self.Pt2, self.bearing)
     
+    def normal(self) -> Bearing:
+        """Bearing 90 deg CW from Segemnt.bearing"""
+        return self.bearing + Angle( -pi/2 ) 
+        
+
     # needs redone b/c either CW or CCW will get you there!
     # finding the angle to a point is ok but delta_angle implize a direction
     #def delta_angle_to_some_bearing(self, inBearing) -> float:
@@ -626,7 +645,7 @@ class Curve:
         #phase of a movement
         return Bearing(cmath.phase(obPoint - self.CC)) 
 
-    def tangent_at_point(self, obPoint:Point) -> Bearing:
+    def tangent_at_point(self, obPoint: Point) -> Bearing:
         if not self.has_dist_os(obPoint):
             return None
         norm = self.normal_at_point(obPoint)
@@ -793,7 +812,7 @@ class Chain:
             return self.Routes[-1].outRay
         #curve add
         if math.isinf(R) and Delta != 0:
-            R = distance / Delta
+            R = abs(distance) / abs(Delta)
             self.addRoute(Curve.from_PC_bearing_R_Delta(lastRay.Point, lastRay.bearing, R, Delta))
             return self.Routes[-1].outRay
 
@@ -833,9 +852,38 @@ class Chain:
                 distance = sta - self.RoutesSta[i]
                 return self.Routes[i].set_point(distance, offset)
 
+
+
+
+    #  #2024_05_30
+    #  def get_normal(self, sta:float) -> Bearing:
+    #      """Return the bearing of the normal at a given station"""
+    #      if sta < self.RoutesSta[0]:
+    #          raise ValueError("Sta should be greater than the chain start station")
+    #      if sta > self.RoutesSta[-1]:  #RoutesSta has end of chain station
+    #          raise ValueError("Sta should be less than the chain ending station")
+
+    #      for i in range(len(self.RoutesSta[:-1])):
+    #          if self.RoutesSta[i] <= sta and sta <= self.RoutesSta[i+1]:
+    #              if isinstance(r, Curve):
+    #                  return self.Routes[i].normal_at_point(sta)
+    #              else:
+    #                  return self.Routes[i].normal()
+    #              return ret
+    #      return None
+
+
+
+
+
+
+
+
+                 
+
+
     def copy_parallel(self, offset:float, start_station=None, name='parallel_copy'):
-        """
-        Return a new chain at the given offset
+        """ Return a new chain at the given offset
         """
         # check that all curves have a valid offset
         _new_routes = [] #pre-populate with some name change this with a new __int__ function putting 'name' as only keyward arg
@@ -871,6 +919,17 @@ class Chain:
             else:
                 ret.append(r.patch())
         return ret
+
+    def get_control_points(self) -> list:
+        ret = []
+        for r in self.Routes:
+            if isinstance(r, Curve):
+                ret.append(r.PT)
+            if isinstance(r, Segment):
+                ret.append(r.Pt2)
+        return ret
+
+
 
     def inverse(self, point:Point, decimals=2) -> tuple:
         '''For this Chain(self) return the station and offset of the input point
