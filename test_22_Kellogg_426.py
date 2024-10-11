@@ -1,5 +1,3 @@
-#import sys, os
-#sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'Civil'))
 import civil.utility  as civil  #move this
 import civil.vertical as vertical   #move this
 from geo_ import Point, Bearing, Angle, Segment, Curve, Chain, Ray, Angle, xy, Distance, translate_rotate
@@ -22,9 +20,10 @@ class NestedDict(dict):
     def __missing__(self, key):  
         self[key] = NestedDict()
         return self[key]
+    
 
 def walkDict( inDict, depth=0):
-    """walk all the NestedDict and dict"""
+     
     pre = "\t"*depth
     for k, v in inDict.items():
         if not isinstance(v, (NestedDict, dict)):
@@ -33,6 +32,37 @@ def walkDict( inDict, depth=0):
             print(f"{pre}{k}")
             walkDict(v, depth=depth +1 )
     depth -= 1
+
+
+def find_key(d:dict, value):
+    """walks a nested dict looking for a value. Returns an order list of
+    of keys that references the value"""
+    for k,v in d.items():
+        if isinstance(v, dict):
+            p = find_key(v, value)
+            if p:
+                return [k] + p
+        elif v == value:
+            return [k]
+
+
+def walkDict_values( inDict, depth=0, retDict={}):
+    """walk a dict and returns a dict of lists. The members of a list share the same type. 
+    The keys are all the unique types in the inDict"""
+    retStr = ""
+    """walk all the NestedDict and dict"""
+    pre = "\t"*depth
+    for k, v in inDict.items():
+        if not isinstance(v, (NestedDict, dict)):
+            retStr += (f"{pre}{k} -> {type(v)}")
+            if type(v) not in retDict:
+                retDict[type(v)] = list()
+            retDict[type(v)].append(v)
+        else:
+            #print(f"{pre}{k}")
+            walkDict_values(v, depth=depth +1, retDict=retDict )
+    depth -= 1
+    return retDict
 
 
 t = NestedDict()
@@ -194,10 +224,14 @@ ax.set_xlim([ 100, 600])
 ax.set_ylim([ -100, 0])
 
 #plt.show()
-
 #import pdb; pdb.set_trace()
 t[Ch]["Road"].inverse( Point(99, -3))
 
-print( walkDict(t) )
+print( walkDict_values(t) )
+
+for k,mylist in walkDict_values(t).items():
+    for obj in mylist:
+        print( obj.__repr__(), find_key(t, obj))
+
 import IPython
 IPython.embed()

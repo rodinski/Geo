@@ -407,8 +407,11 @@ class Segment:
     
     def normal(self) -> Bearing:
         """Bearing 90 deg CW from Segemnt.bearing"""
-        return self.bearing + Angle( -pi/2 ) 
-        
+        return Bearing(self.bearing + Angle( -pi/2 ) )
+
+    def normal_at_point(self) -> Bearing:
+        """Bearing 90 deg CW from Segemnt.bearing"""
+        return self.normal()        
 
     # needs redone b/c either CW or CCW will get you there!
     # finding the angle to a point is ok but delta_angle implize a direction
@@ -643,7 +646,11 @@ class Curve:
         if not self.has_dist_os(obPoint):
             return None
         #phase of a movement
-        return Bearing(cmath.phase(obPoint - self.CC)) 
+        #self.sign_delta = sign(Delta)  #ccw=+   cw=-
+        if self.sign_delta <= 0:
+            return Bearing(cmath.phase(self.CC- obPoint)) 
+        else: 
+            return Bearing(cmath.phase(obPoint - self.CC)) 
 
     def tangent_at_point(self, obPoint: Point) -> Bearing:
         if not self.has_dist_os(obPoint):
@@ -856,21 +863,24 @@ class Chain:
 
 
     #  #2024_05_30
-    #  def get_normal(self, sta:float) -> Bearing:
-    #      """Return the bearing of the normal at a given station"""
-    #      if sta < self.RoutesSta[0]:
-    #          raise ValueError("Sta should be greater than the chain start station")
-    #      if sta > self.RoutesSta[-1]:  #RoutesSta has end of chain station
-    #          raise ValueError("Sta should be less than the chain ending station")
+    def normal_at_point(self, obj_point:Point) -> Bearing:
+        """Return the bearing of the normal at a given station"""
 
-    #      for i in range(len(self.RoutesSta[:-1])):
-    #          if self.RoutesSta[i] <= sta and sta <= self.RoutesSta[i+1]:
-    #              if isinstance(r, Curve):
-    #                  return self.Routes[i].normal_at_point(sta)
-    #              else:
-    #                  return self.Routes[i].normal()
-    #              return ret
-    #      return None
+        #  Error check to see if sta/offset exists NOT sta
+        # if sta < self.RoutesSta[0]:
+        #     raise ValueError("Sta should be greater than the chain start station")
+        # if sta > self.RoutesSta[-1]:  #RoutesSta has end of chain station
+        #     raise ValueError("Sta should be less than the chain ending station")
+
+        for i in range(len(self.RoutesSta[:-1])):
+            sta = self.inverse(obj_point)[0]
+            if self.RoutesSta[i] <= sta and sta <= self.RoutesSta[i+1]:
+                if isinstance(self.Routes[i], Curve):
+                    return self.Routes[i].normal_at_point(obj_point)
+                else:
+                    return self.Routes[i].normal_at_point()
+                return ret
+        return None
 
 
 
