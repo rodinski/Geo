@@ -373,10 +373,9 @@ class Ray:
 @dataclass
 #class Segment(Ray):
 class Segment:
-
     is_Segment = True
     def __init__(self, Pt1:Point, Pt2:Point):
-
+        """ initial """
         if not isinstance(Pt1, Point):
             raise TypeError(
                     f"Provide a Point object")
@@ -449,13 +448,25 @@ class Segment:
     #    return self.set_point(distance, offset)
 
 
-
     def copy_parallel(self, offset):
         """Return copy of the Segment, offset has no limits
         """
         _pt1 = self.set_point(0, offset)
         _pt2 = self.set_point(self.length, offset)
         return Segment(_pt1, _pt2)
+
+    def  split(self, distance=0):
+        if distance < 0 or distance > self.length:
+            return (None, None)
+        if distance == 0:
+            return (None, self)
+        if distance == self.length:
+            return (self, None)
+
+        split_pt = self.set_point(distance)
+        back = Segment(self.Pt1, split_pt)
+        ahead = Segment(split_pt, self.Pt2)
+        return( back, ahead )
 
 
     def __repr__(self):
@@ -721,6 +732,19 @@ class Curve:
             return Point.from_complex(_new_point)
         return "Error"
 
+    def  split(self, distance=0):
+        if distance < 0 or distance > self.length:
+            return (None, None)
+        if distance == 0:
+            return (None, self)
+        if distance == self.length:
+            return (self, None)
+        pct = distance / self.length
+        set_point = self.set_point(distance)
+        back =  Curve(self.PC  , self.CC, self.Delta * pct)
+        ahead = Curve(set_point, self.CC, self.Delta * (1-pct))
+        return (back, ahead)
+
 
     def patch(self, **kwargs):
         x = self.CC.X
@@ -859,9 +883,6 @@ class Chain:
                 distance = sta - self.RoutesSta[i]
                 return self.Routes[i].set_point(distance, offset)
 
-
-
-
     #  #2024_05_30
     def normal_at_point(self, obj_point:Point) -> Bearing:
         """Return the bearing of the normal at a given station"""
@@ -881,15 +902,6 @@ class Chain:
                     return self.Routes[i].normal_at_point()
                 return ret
         return None
-
-
-
-
-
-
-
-
-                 
 
 
     def copy_parallel(self, offset:float, start_station=None, name='parallel_copy'):
@@ -940,7 +952,6 @@ class Chain:
         return ret
 
 
-
     def inverse(self, point:Point, decimals=2) -> tuple:
         '''For this Chain(self) return the station and offset of the input point
         there might be multiple valid station offset pairs, return 
@@ -967,6 +978,39 @@ class Chain:
             return Dist_os_tup(None, None)
         return Dist_os_tup(subList[0][0], subList[0][1])
 
+    def split(self, start_sta=None, end_sta=None):
+        """return a new Chain going from start to end"""
+        split_start_sta = start_sta
+        split_end_sta = end_sta
+    
+        route_list = []
+        #start and forward
+        for r, s_sta in zip(self.Routes, self.RoutesSta[:-1]):
+            pass
+            if s_sta <= split_start_sta  <= (s_sta + r.length):
+                distance = split_start_sta - s_sta
+                route_list.append(r.split(distance)[1])
+
+            if s_sta > split_start_sta:
+                route_list.append(r)
+
+        #print( route_list )
+        tempChain=Chain( *route_list ) #
+
+        route_list = []               #reset
+        for r, s_sta in zip(tempChain.Routes, tempChain.RoutesSta[:-1]):
+            if s_sta <= split_end_sta <= (s_sta + r.length):
+                distance = (s_sta + r.length) - split_end_sta
+                route_list.append(r.split(distance)[0])
+            if (s_sta + r.length)  < split_end_sta:
+                route_list.append(r)
+
+        #print( route_list )
+        return Chain( *route_list ) 
+
+
+        #up_to_end
+                
 
     def __str__(self) -> str:
         _s = ""

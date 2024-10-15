@@ -133,9 +133,18 @@ for i in range(1,9):
 
     bearing_pts.append( ref["start"] )
     bearing_pts.append( ref["end"  ] )
-    
 
-fig, ax = plt.subplots()
+
+#right edge of deck
+#t["BentSta"][1] = 17348.18
+#t["BentSta"][10] = 18362.33
+my_Right_EOD = myChain.copy_parallel( 21.333 ).split(start_sta=800, end_sta=800+900)
+my_Left_EOD =  myChain.copy_parallel( -21.333).split(start_sta=800, end_sta=800+700)
+
+   
+
+#plt.figure(figsize=(8, 8))
+fig, ax = plt.subplots( figsize=(9,9) )
 
 ax.scatter(*xy(pts))
 ax.scatter(*xy(bearing_pts), marker='+', color='r')
@@ -154,10 +163,14 @@ for segment in t['segments_G3']:
 ax.scatter( *xy(pts) )
 
 
-for patch in myChain.patch_list():
-    ax.add_patch(patch)
+
+for chain in [ myChain, my_Right_EOD, my_Left_EOD ]:
+    for patch in chain.patch_list():
+        ax.add_patch(patch)
 
 plt.axis('scaled')
+ax.set_xlim( 2763600, 2763600+800 )
+ax.set_ylim(  1087600, 1087600+1500  )
 plt.show()
 
 
@@ -178,6 +191,19 @@ def walkDict_values( inDict, depth=0, retDict={}):
     return retDict
 
 
-print(myChain)
-IPython.embed()
+def walkDict( inDict, depth=0):
+    """walk all the NestedDict and dict"""
+    pre = "\t"*depth
+    keyDict = {}
+    for k, v in inDict.items():
+        if not isinstance(v, (NestedDict, dict)):
+            print(f"{pre}{k} -> {type(v)} ")
+            keyDict[k] ={}
+        else:
+            print(f"{pre}{k}")
+            walkDict(v, depth=depth +1)
+    depth -= 1
+    return keyDict
 
+#walkDict(t) 
+IPython.embed()
