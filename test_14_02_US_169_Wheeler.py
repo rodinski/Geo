@@ -9,6 +9,7 @@ from collections import defaultdict
 import collections
 import pprint as pp
 from curve_intersection_ import ray_curve_intersect
+from line_intersect_ import intersect_lines
 
 
 # setup for defaultdict to always produce a dict
@@ -79,7 +80,10 @@ for i in range(1,11):
     t["Bent_CL"][i] = Segment(point_left, point_right)
     t["segments"].append( Segment(point_left, point_right))
 
-    # set bearing lines at int_bents
+    # set bearing lines at end_bents
+    t["Bent_Bearing"][1]["ahead"] = t["Bent_CL"][1]     
+    t["Bent_Bearing"][11]["back"] = t["Bent_CL"][11]
+
     if i > 1 and i < 11:
         bent_CL_offset = 1.0
         if i in [ 6,7]:  # high skew 
@@ -95,44 +99,32 @@ for i in range(1,10):
     t['segments'].append( t["Span_Chord"][i] ) 
     #t['segments'].append( t["Span_Chord"][i].copy_parallel(10) ) 
 
-t["G3_os"][1]["ahead"] = 0.75
-t["G3_os"][2]["back"] =  0.75
-
-t["G3_os"][2]["ahead"] = 0.333
-t["G3_os"][3]["back"] =  0.333
-
-t["G3_os"][3]["ahead"] = 0.0
-t["G3_os"][4]["back"] =  2.0
-
-t["G3_os"][4]["ahead"] = 1.666
-t["G3_os"][5]["back"] =  1.666
-
-t["G3_os"][5]["ahead"] = 1.5
-t["G3_os"][6]["back"] =  1.5
-
-t["G3_os"][6]["ahead"] = 2.0
-t["G3_os"][7]["back"] =  2.0
-
-t["G3_os"][7]["ahead"] = 0.0
-t["G3_os"][8]["back"] =  0.0
-
-t["G3_os"][8]["ahead"] = 1.75
-t["G3_os"][9]["back"] =  1.75
+t["G3_os"][1] = 0.75
+t["G3_os"][2] = 0.333
+t["G3_os"][3] = None
+t["G3_os"][4] = 1.666
+t["G3_os"][5] = 1.5
+t["G3_os"][6] = 2.0
+t["G3_os"][7] = 0.0
+t["G3_os"][8] = 1.75
 
 
 # Girder 3
 bearing_pts = []
 t["segments_G3"] = []
-for i in range(1,9):
+
+for span in range(1,9):
+    if span == 3:
+        continue 
     ref = t["Beam_span"][i]["G"][3]
-    #print(t["Bearing_Ray"][i  ],   t["G3_os"][i]["ahead"])
-    #use the in/outRay of each Span_Chord
-    ref["start"] = t["Span_Chord"][i].inRay().set_point( 0.0, t["G3_os"][i]["ahead"] )
-    ref["end"]  =  t["Span_Chord"][i].outRay().set_point( 0.0, t["G3_os"][i+1]["back"] )
-    t["segments_G3"].append( Segment( ref["start"], ref["end"] ) ) 
+    #make off set the chord then intersect it with the two bearing lines
+    myBmWeb = t["Span_Chord"][span].copy_parallel( t["G3_os"][span] )
+
+    ref["start"] = intersect_lines(myBmWeb.inRay(), t["Bent_Bearing"][span]["ahead"].inRay() )
+    ref["end"] = intersect_lines(myBmWeb.inRay(), t["Bent_Bearing"][span+1]["back"].inRay() )
 
     bearing_pts.append( ref["start"] )
-    bearing_pts.append( ref["end"  ] )
+    bearing_pts.append( ref["end"] )
 
 
 #right edge of deck
@@ -147,7 +139,7 @@ my_Left_EOD =  myChain.copy_parallel( -21.333).split(start_sta=800, end_sta=800+
 fig, ax = plt.subplots( figsize=(9,9) )
 
 ax.scatter(*xy(pts))
-ax.scatter(*xy(bearing_pts), marker='+', color='r')
+ax.scatter(*xy(bearing_pts), marker='x', color='r', s=80)
 
 for curve in t['curves']:
     for p in curve.patch_all():
@@ -205,5 +197,5 @@ def walkDict( inDict, depth=0):
     depth -= 1
     return keyDict
 
-#walkDict(t) 
+walkDict(t) 
 IPython.embed()

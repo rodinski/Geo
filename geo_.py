@@ -456,6 +456,9 @@ class Segment:
         return Segment(_pt1, _pt2)
 
     def  split(self, distance=0):
+        """Return two Regments one up to distance one beyond"""
+        # Better valueError checking needed
+        # Try to use Distance Class inputs 
         if distance < 0 or distance > self.length:
             return (None, None)
         if distance == 0:
@@ -733,6 +736,10 @@ class Curve:
         return "Error"
 
     def  split(self, distance=0):
+        """Return two Curves one ahead of distance and one beyondo""" 
+        # more error checking is needed.
+        # is distance instead of just returning None a valueError should be raised 
+
         if distance < 0 or distance > self.length:
             return (None, None)
         if distance == 0:
@@ -979,7 +986,11 @@ class Chain:
         return Dist_os_tup(subList[0][0], subList[0][1])
 
     def split(self, start_sta=None, end_sta=None):
-        """return a new Chain going from start to end"""
+        """Return a new Chain beging and at start_station and ending at end_sta"""
+        # more error checking is needed.
+        # instead of just returning None a valueErrors should be raised 
+        # look into using Distances classes
+
         split_start_sta = start_sta
         split_end_sta = end_sta
     
