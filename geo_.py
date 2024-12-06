@@ -269,12 +269,14 @@ class Ray:
         point_at_start=T/F (default=False) spacing is a distance to the 
         next point n_steps integer number of points to produce
         """
-        ret = ()
+        #ret = ()
+        retlist=[]
         if point_at_start:
-            ret.append(self.set_point(start))
+            retlist.append(self.set_point(start))
         for i in range(n_steps):
             distance = start + (i+1)*spacing
-            ret.append(self.set_point(distance))
+            retlist.append(self.set_point(distance))
+        return tuple( retlist )
 
     def equal(self, ob):
         ''' Are two Rays equal?'''
