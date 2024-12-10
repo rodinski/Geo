@@ -1,0 +1,601 @@
+Span:
+  1:
+    G:
+      1:
+        Nth:
+          0:
+            Sta: 17348.18
+            offset: -17.11
+            ProG: 773.4046
+            xs_corr: -0.3066
+            el_Deck: 773.098
+          10:
+            Sta: 17472.17
+            offset: -17.16
+            ProG: 778.7035
+            xs_corr: -0.2395
+            el_Deck: 778.464
+      2:
+        Nth:
+          0:
+            Sta: 17348.18
+            offset: -8.18
+            ProG: 773.4046
+            xs_corr: 0.2292
+            el_Deck: 773.634
+          10:
+            Sta: 17472.17
+            offset: -8.23
+            ProG: 778.7035
+            xs_corr: 0.1751
+            el_Deck: 778.879
+      3:
+        Nth:
+          0:
+            Sta: 17348.18
+            offset: 0.75
+            ProG: 773.4046
+            xs_corr: 0.765
+            el_Deck: 774.17
+          10:
+            Sta: 17472.18
+            offset: 0.7
+            ProG: 778.704
+            xs_corr: 0.5896
+            el_Deck: 779.294
+      4:
+        Nth:
+          0:
+            Sta: 17348.18
+            offset: 9.68
+            ProG: 773.4046
+            xs_corr: 1.3009
+            el_Deck: 774.705
+          10:
+            Sta: 17472.19
+            offset: 9.63
+            ProG: 778.7044
+            xs_corr: 1.0042
+            el_Deck: 779.709
+      5:
+        Nth:
+          0:
+            Sta: 17348.18
+            offset: 18.61
+            ProG: 773.4046
+            xs_corr: 1.8368
+            el_Deck: 775.241
+          10:
+            Sta: 17472.2
+            offset: 18.56
+            ProG: 778.7049
+            xs_corr: 1.4188
+            el_Deck: 780.124
+  2:
+    G:
+      1:
+        Nth:
+          0:
+            Sta: 17474.2
+            offset: -18.05
+            ProG: 778.7967
+            xs_corr: -0.2775
+            el_Deck: 778.519
+          10:
+            Sta: 17597.18
+            offset: -18.01
+            ProG: 784.1471
+            xs_corr: -0.0703
+            el_Deck: 784.077
+      2:
+        Nth:
+          0:
+            Sta: 17474.19
+            offset: -8.88
+            ProG: 778.7963
+            xs_corr: 0.1431
+            el_Deck: 778.939
+          10:
+            Sta: 17597.18
+            offset: -8.84
+            ProG: 784.1471
+            xs_corr: 0.037
+            el_Deck: 784.184
+      3:
+        Nth:
+          0:
+            Sta: 17474.18
+            offset: 0.3
+            ProG: 778.7958
+            xs_corr: 0.5643
+            el_Deck: 779.36
+          10:
+            Sta: 17597.18
+            offset: 0.32
+            ProG: 784.1471
+            xs_corr: 0.1442
+            el_Deck: 784.291
+      4:
+        Nth:
+          0:
+            Sta: 17474.17
+            offset: 9.47
+            ProG: 778.7953
+            xs_corr: 0.985
+            el_Deck: 779.78
+          10:
+            Sta: 17597.18
+            offset: 9.49
+            ProG: 784.1471
+            xs_corr: 0.2516
+            el_Deck: 784.399
+      5:
+        Nth:
+          0:
+            Sta: 17474.16
+            offset: 18.64
+            ProG: 778.7949
+            xs_corr: 1.4058
+            el_Deck: 780.201
+          10:
+            Sta: 17597.18
+            offset: 18.66
+            ProG: 784.1471
+            xs_corr: 0.3589
+            el_Deck: 784.506
+  3:
+    G:
+      1:
+        Nth:
+          0:
+            Sta: 17599.18
+            offset: -18.3
+            ProG: 784.2243
+            xs_corr: -0.0703
+            el_Deck: 784.154
+          10:
+            Sta: 17707.18
+            offset: -14.37
+            ProG: 787.8754
+            xs_corr: 0.0447
+            el_Deck: 787.92
+      2:
+        Nth:
+          0:
+            Sta: 17599.18
+            offset: -9.14
+            ProG: 784.2243
+            xs_corr: 0.0319
+            el_Deck: 784.256
+          10:
+            Sta: 17707.18
+            offset: -6.19
+            ProG: 787.8754
+            xs_corr: -0.1095
+            el_Deck: 787.766
+      3:
+        Nth:
+          0:
+            Sta: 17599.18
+            offset: 0.02
+            ProG: 784.2243
+            xs_corr: 0.134
+            el_Deck: 784.358
+          10:
+            Sta: 17707.18
+            offset: 1.98
+            ProG: 787.8754
+            xs_corr: -0.2635
+            el_Deck: 787.612
+      4:
+        Nth:
+          0:
+            Sta: 17599.18
+            offset: 9.18
+            ProG: 784.2243
+            xs_corr: 0.2362
+            el_Deck: 784.461
+          10:
+            Sta: 17707.18
+            offset: 10.16
+            ProG: 787.8754
+            xs_corr: -0.4177
+            el_Deck: 787.458
+      5:
+        Nth:
+          0:
+            Sta: 17599.18
+            offset: 18.33
+            ProG: 784.2243
+            xs_corr: 0.3382
+            el_Deck: 784.562
+          10:
+            Sta: 17707.18
+            offset: 18.33
+            ProG: 787.8754
+            xs_corr: -0.5717
+            el_Deck: 787.304
+  4:
+    G:
+      1:
+        Nth:
+          0:
+            Sta: 17709.18
+            offset: -14.48
+            ProG: 787.9334
+            xs_corr: 0.0481
+            el_Deck: 787.981
+          10:
+            Sta: 17816.78
+            offset: -14.46
+            ProG: 790.5359
+            xs_corr: 0.1213
+            el_Deck: 790.657
+      2:
+        Nth:
+          0:
+            Sta: 17709.18
+            offset: -6.4
+            ProG: 787.9334
+            xs_corr: -0.1087
+            el_Deck: 787.825
+          10:
+            Sta: 17816.77
+            offset: -6.37
+            ProG: 790.5357
+            xs_corr: -0.2775
+            el_Deck: 790.258
+      3:
+        Nth:
+          0:
+            Sta: 17709.18
+            offset: 1.68
+            ProG: 787.9334
+            xs_corr: -0.2655
+            el_Deck: 787.668
+          10:
+            Sta: 17816.76
+            offset: 1.72
+            ProG: 790.5355
+            xs_corr: -0.6763
+            el_Deck: 789.859
+      4:
+        Nth:
+          0:
+            Sta: 17709.18
+            offset: 9.77
+            ProG: 787.9334
+            xs_corr: -0.4225
+            el_Deck: 787.511
+          10:
+            Sta: 17816.75
+            offset: 9.81
+            ProG: 790.5353
+            xs_corr: -1.075
+            el_Deck: 789.46
+      5:
+        Nth:
+          0:
+            Sta: 17709.18
+            offset: 17.85
+            ProG: 787.9334
+            xs_corr: -0.5793
+            el_Deck: 787.354
+          10:
+            Sta: 17816.74
+            offset: 17.9
+            ProG: 790.5351
+            xs_corr: -1.4737
+            el_Deck: 789.061
+  5:
+    G:
+      1:
+        Nth:
+          0:
+            Sta: 17819.58
+            offset: -14.29
+            ProG: 790.5901
+            xs_corr: 0.1146
+            el_Deck: 790.705
+          10:
+            Sta: 17930.49
+            offset: -14.68
+            ProG: 792.1839
+            xs_corr: 0.1608
+            el_Deck: 792.345
+      2:
+        Nth:
+          0:
+            Sta: 17819.59
+            offset: -6.36
+            ProG: 790.5903
+            xs_corr: -0.2824
+            el_Deck: 790.308
+          10:
+            Sta: 17925.87
+            offset: -6.53
+            ProG: 792.139
+            xs_corr: -0.3282
+            el_Deck: 791.811
+      3:
+        Nth:
+          0:
+            Sta: 17819.6
+            offset: 1.56
+            ProG: 790.5905
+            xs_corr: -0.679
+            el_Deck: 789.912
+          10:
+            Sta: 17921.19
+            offset: 1.6
+            ProG: 792.0917
+            xs_corr: -0.816
+            el_Deck: 791.276
+      4:
+        Nth:
+          0:
+            Sta: 17819.61
+            offset: 9.49
+            ProG: 790.5907
+            xs_corr: -1.0763
+            el_Deck: 789.514
+          10:
+            Sta: 17916.44
+            offset: 9.72
+            ProG: 792.0416
+            xs_corr: -1.3033
+            el_Deck: 790.738
+      5:
+        Nth:
+          0:
+            Sta: 17819.62
+            offset: 17.41
+            ProG: 790.5909
+            xs_corr: -1.4731
+            el_Deck: 789.118
+          10:
+            Sta: 17911.62
+            offset: 17.81
+            ProG: 791.9888
+            xs_corr: -1.7888
+            el_Deck: 790.2
+  6:
+    G:
+      1:
+        Nth:
+          0:
+            Sta: 17932.69
+            offset: -13.52
+            ProG: 792.2046
+            xs_corr: 0.0912
+            el_Deck: 792.296
+          10:
+            Sta: 18034.19
+            offset: -14.67
+            ProG: 792.909
+            xs_corr: 0.1602
+            el_Deck: 793.069
+      2:
+        Nth:
+          0:
+            Sta: 17928.29
+            offset: -5.75
+            ProG: 792.1628
+            xs_corr: -0.375
+            el_Deck: 791.788
+          10:
+            Sta: 18022.85
+            offset: -6.18
+            ProG: 792.8354
+            xs_corr: -0.3492
+            el_Deck: 792.486
+      3:
+        Nth:
+          0:
+            Sta: 17923.84
+            offset: 2.01
+            ProG: 792.1187
+            xs_corr: -0.8406
+            el_Deck: 791.278
+          10:
+            Sta: 18011.35
+            offset: 2.19
+            ProG: 792.7608
+            xs_corr: -0.8514
+            el_Deck: 791.909
+      4:
+        Nth:
+          0:
+            Sta: 17919.33
+            offset: 9.75
+            ProG: 792.0723
+            xs_corr: -1.3051
+            el_Deck: 790.767
+          10:
+            Sta: 17999.7
+            offset: 10.45
+            ProG: 792.6852
+            xs_corr: -1.3471
+            el_Deck: 791.338
+      5:
+        Nth:
+          0:
+            Sta: 17914.77
+            offset: 17.48
+            ProG: 792.0235
+            xs_corr: -1.769
+            el_Deck: 790.255
+          10:
+            Sta: 17987.88
+            offset: 18.6
+            ProG: 792.6085
+            xs_corr: -1.8362
+            el_Deck: 790.772
+  7:
+    G:
+      1:
+        Nth:
+          0:
+            Sta: 18038.19
+            offset: -14.59
+            ProG: 792.9349
+            xs_corr: 0.1554
+            el_Deck: 793.09
+          10:
+            Sta: 18188.42
+            offset: -14.54
+            ProG: 793.9097
+            xs_corr: 0.1512
+            el_Deck: 794.061
+      2:
+        Nth:
+          0:
+            Sta: 18027.7
+            offset: -6.67
+            ProG: 792.8669
+            xs_corr: -0.3198
+            el_Deck: 792.547
+          10:
+            Sta: 18177.62
+            offset: -6.73
+            ProG: 793.8397
+            xs_corr: -0.3162
+            el_Deck: 793.524
+      3:
+        Nth:
+          0:
+            Sta: 18017.06
+            offset: 1.15
+            ProG: 792.7978
+            xs_corr: -0.789
+            el_Deck: 792.009
+          10:
+            Sta: 18166.67
+            offset: 0.98
+            ProG: 793.7686
+            xs_corr: -0.7788
+            el_Deck: 792.99
+      4:
+        Nth:
+          0:
+            Sta: 18006.29
+            offset: 8.88
+            ProG: 792.7279
+            xs_corr: -1.2529
+            el_Deck: 791.475
+          10:
+            Sta: 18155.59
+            offset: 8.6
+            ProG: 793.6967
+            xs_corr: -1.2361
+            el_Deck: 792.461
+      5:
+        Nth:
+          0:
+            Sta: 17995.38
+            offset: 16.51
+            ProG: 792.6571
+            xs_corr: -1.7108
+            el_Deck: 790.946
+          10:
+            Sta: 18144.36
+            offset: 16.11
+            ProG: 793.6238
+            xs_corr: -1.6868
+            el_Deck: 791.937
+  8:
+    G:
+      1:
+        Nth:
+          0:
+            Sta: 18190.43
+            offset: -13.54
+            ProG: 791.8223
+            xs_corr: 0.0908
+            el_Deck: 791.913
+          10:
+            Sta: 18345.46
+            offset: -14.42
+            ProG: 788.9458
+            xs_corr: 0.0484
+            el_Deck: 788.994
+      2:
+        Nth:
+          0:
+            Sta: 18179.84
+            offset: -5.86
+            ProG: 793.8541
+            xs_corr: -0.3684
+            el_Deck: 793.486
+          10:
+            Sta: 18335.8
+            offset: -6.32
+            ProG: 789.1831
+            xs_corr: -0.1136
+            el_Deck: 789.069
+      3:
+        Nth:
+          0:
+            Sta: 18169.11
+            offset: 1.72
+            ProG: 793.7844
+            xs_corr: -0.8232
+            el_Deck: 792.961
+          10:
+            Sta: 18326.14
+            offset: 1.79
+            ProG: 789.4126
+            xs_corr: -0.2935
+            el_Deck: 789.119
+      4:
+        Nth:
+          0:
+            Sta: 18158.26
+            offset: 9.21
+            ProG: 793.714
+            xs_corr: -1.2727
+            el_Deck: 792.441
+          10:
+            Sta: 18316.48
+            offset: 9.9
+            ProG: 789.6345
+            xs_corr: -0.525
+            el_Deck: 789.11
+      5:
+        Nth:
+          0:
+            Sta: 18147.26
+            offset: 16.6
+            ProG: 793.6427
+            xs_corr: -1.7162
+            el_Deck: 791.927
+          10:
+            Sta: 18306.82
+            offset: 18.0
+            ProG: 789.8486
+            xs_corr: -0.7996
+            el_Deck: 789.049
+  9:
+    G:
+      1:
+        Nth: {}
+      2:
+        Nth: {}
+      3:
+        Nth:
+          0:
+            Sta: 18169.11
+            offset: 1.72
+            ProG: 793.7844
+            xs_corr: -0.8232
+            el_Deck: 792.961
+          10:
+            Sta: 18326.14
+            offset: 1.79
+            ProG: 789.4126
+            xs_corr: -0.2935
+            el_Deck: 789.119
+      4:
+        Nth: {}
+      5:
+        Nth: {}

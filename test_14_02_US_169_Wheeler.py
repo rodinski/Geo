@@ -10,6 +10,7 @@ import collections
 import pprint as pp
 from curve_intersection_ import ray_curve_intersect
 from line_intersect_ import intersect_lines
+import yaml
 
 
 # setup for defaultdict to always produce a dict
@@ -299,7 +300,7 @@ for b in range(1,10):
           if ref[g].get('start', None) and ref[g].get('end', None):
               s_val = myChain.inverse( ref[g]['start'] )
               e_val = myChain.inverse( ref[g]['end'] )
-              print( f't["Beam_span"][{b}]["G"][{g}]\t{s_val.distance:.2f}\t{s_val.offset:6.2f}\t{s_val.distance:.2f}\t{e_val.offset:6.2f} ' )
+              print( f't["Beam_span"][{b}]["G"][{g}]\t{s_val.distance:.2f}\t{s_val.offset:6.2f}\t{e_val.distance:.2f}\t{e_val.offset:6.2f} ' )
           else:
               continue
               
@@ -333,9 +334,17 @@ myPG = vc.ProG( name = 'PGL',
 import cross_slopes_US_169_Wheeler as xs
 #IPython.embed()
 
+BI = dict()
+BI["Span"] = dict()
 for b in range(1,10):
+    BI["Span"][b] = dict()
+    BI["Span"][b]["G"] = dict()
+
     print()
     for g in range(1, 6):
+        BI["Span"][b]["G"][g] = dict()
+        BI["Span"][b]["G"][g]["Nth"] = dict()
+
         ref = t["Beam_span"][b]["G"]
         val = ref.get(g, None)
         if val is None:
@@ -353,10 +362,10 @@ for b in range(1,10):
               # input()
 
               s_xs_correction = xs.xs_correction(s_val.distance, s_val.offset)
-              s_Deck = s_ProG  + s_xs_correction
+              s_Deck = round( s_ProG  + s_xs_correction, 3 )
 
               e_xs_correction = xs.xs_correction(e_val.distance, e_val.offset)
-              e_Deck = e_ProG  + e_xs_correction
+              e_Deck = round( e_ProG  + e_xs_correction, 3 )
 
               res = [ f'"Beam_span"][{b}]["G"][{g}]', 
                       f'{s_val.distance:.2f}', 
@@ -369,10 +378,18 @@ for b in range(1,10):
                       f'{e_xs_correction:.2f}', 
                       f'{e_Deck:.2f}' ]
 
+              BI["Span"][b]["G"][g]["Nth"][0]  = { "Sta": s_val.distance, "offset": s_val.offset,  "ProG": s_ProG, "xs_corr": s_xs_correction, "el_Deck": s_Deck }
+              BI["Span"][b]["G"][g]["Nth"][10] = { "Sta": e_val.distance, "offset": e_val.offset,  "ProG": e_ProG, "xs_corr": e_xs_correction, "el_Deck": e_Deck }
+
+
               #print( f't["Beam_span"][{b}]["G"][{g}]\t{s_val.distance:.2f}\t{s_ProG:.2f}\t{s_xs_correction:.2f}\t{s_Deck:.2f}  |\t{e_val.distance:.2f}\t{e_ProG:.2f}\t{e_xs_correction:.2f}\t{e_Deck:.2f}')
 
               print( "\t".join( res ) )
           else:
               continue
+with open( "test_14_beam_info.yaml", 'w') as fh:
+    yaml.dump( BI, fh,  sort_keys=False )
+
 #print(dir(xs)) 
+print( BI )
 IPython.embed()
