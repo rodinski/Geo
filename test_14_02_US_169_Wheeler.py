@@ -305,28 +305,25 @@ for b in range(1,10):
               continue
               
 import civil.vertical
-'''
-class ProG:
-    def __init__(self, name, pointList ):
-'''
-''' ProG are defined with a list.  
-The list must start and end with a "named point tuple"
-midpoints must be "named pi tuples" 
-Once the input is validated two lists are created
-self.pog = list of "named pc and pt tuples"
-self.set = list of "named segment tuples"
-'''
+
+# class ProG:
+#     def __init__(self, name, pointList ):
+#  ProG are defined with a list.  
+# The list must start and end with a "named point tuple"
+# midpoints must be "named pi tuples" 
+# Once the input is validated two lists are created
+# self.pog = list of "named pc and pt tuples"
+# self.set = list of "named segment tuples"
 
 import civil.vertical as vc
 myPG = vc.ProG( name = 'PGL', 
     pointList=[
 
-    vc.point( 16905.00,764.91), 
-    vc.pi( 17175.00, 765.06,540),
-    vc.pi( 17740.00, 791.00, 450), 
-    vc.pi( 17965.00, 792.46, 450), 
-    vc.pi( 18190.00, 793.92, 450),  
-    vc.point( 18415.00,787.01) 
+    vc.point( 16905.00, 764.91), 
+    vc.pi(    17175.00, 765.06,540),
+    vc.pi(    17740.00, 791.00, 450), 
+    vc.pi(    18190.00, 793.92, 450),  
+    vc.point( 18415.00, 787.01) 
     ])
 
 #print(myPG)
@@ -379,7 +376,12 @@ for b in range(1,10):
                       f'{e_Deck:.2f}' ]
 
               BI["Span"][b]["G"][g]["Nth"][0]  = { "Sta": s_val.distance, "offset": s_val.offset,  "ProG": s_ProG, "xs_corr": s_xs_correction, "el_Deck": s_Deck }
+              BI["Span"][b]["G"][g]["Nth"][0]["E"]  = ref[g]['start'].X
+              BI["Span"][b]["G"][g]["Nth"][0]["N"]  = ref[g]['start'].Y
+
               BI["Span"][b]["G"][g]["Nth"][10] = { "Sta": e_val.distance, "offset": e_val.offset,  "ProG": e_ProG, "xs_corr": e_xs_correction, "el_Deck": e_Deck }
+              BI["Span"][b]["G"][g]["Nth"][10]["E"]  = ref[g]['end'].X
+              BI["Span"][b]["G"][g]["Nth"][10]["N"]  = ref[g]['end'].Y
 
 
               #print( f't["Beam_span"][{b}]["G"][{g}]\t{s_val.distance:.2f}\t{s_ProG:.2f}\t{s_xs_correction:.2f}\t{s_Deck:.2f}  |\t{e_val.distance:.2f}\t{e_ProG:.2f}\t{e_xs_correction:.2f}\t{e_Deck:.2f}')
@@ -387,9 +389,25 @@ for b in range(1,10):
               print( "\t".join( res ) )
           else:
               continue
-with open( "test_14_beam_info.yaml", 'w') as fh:
-    yaml.dump( BI, fh,  sort_keys=False )
+
+#don't keep rewriting wait for a change for correction
+#with open( "test_14_beam_info_v2.yaml", 'w') as fh:
+#    yaml.dump( BI, fh,  sort_keys=False )
 
 #print(dir(xs)) 
 print( BI )
+
+for i in range(1, 10):
+    print( f"Bent_{i}_Lt\t{t['Bent_CL'][i].Pt1.X}\t{t['Bent_CL'][i].Pt1.Y}" )
+    print( f"Bent_{i}_Rt\t{t['Bent_CL'][i].Pt2.X}\t{t['Bent_CL'][i].Pt2.Y}" )
+
+for s in t['Beam_span'].keys():
+     for g in t['Beam_span'][s]["G"].keys():
+         for s_e in t['Beam_span'][s]["G"][g].keys():
+             if s_e =='start': 
+                 N=0
+             if s_e =='end': 
+                 N=10
+             ref = t['Beam_span'][s]["G"][g][s_e]
+             print(f"S{s}G{g}N{N:02d}\t{ref.Y}\t{ref.X}")
 IPython.embed()
