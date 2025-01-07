@@ -91,6 +91,8 @@ for i in range(1,11):
             bent_CL_offset = 1.4166
         if i in [ 6,7]:  # high skew 
             bent_CL_offset = 1.25
+        if i in [ 9]:  # high skew 
+            bent_CL_offset = 0.00
         t["Bent_Bearing"][i]["ahead"] = ahead = t["Bent_CL"][i].copy_parallel(-bent_CL_offset)
         t["Bent_Bearing"][i]["back"]  = back =  t["Bent_CL"][i].copy_parallel( bent_CL_offset)
         t["segments"].append( ahead )
@@ -395,12 +397,13 @@ for b in range(1,10):
 #    yaml.dump( BI, fh,  sort_keys=False )
 
 #print(dir(xs)) 
-print( BI )
+print( BI )   # BI = BeamInfo
 
 for i in range(1, 10):
-    print( f"Bent_{i}_Lt\t{t['Bent_CL'][i].Pt1.X}\t{t['Bent_CL'][i].Pt1.Y}" )
-    print( f"Bent_{i}_Rt\t{t['Bent_CL'][i].Pt2.X}\t{t['Bent_CL'][i].Pt2.Y}" )
-
+    #print Northing(y) then Easting(x)
+    print( f"Bent_{i}_Lt\t{t['Bent_CL'][i].Pt1.Y}\t{t['Bent_CL'][i].Pt1.X}" )
+    print( f"Bent_{i}_Rt\t{t['Bent_CL'][i].Pt2.Y}\t{t['Bent_CL'][i].Pt2.X}" )
+print()
 for s in t['Beam_span'].keys():
      for g in t['Beam_span'][s]["G"].keys():
          for s_e in t['Beam_span'][s]["G"][g].keys():
@@ -409,5 +412,60 @@ for s in t['Beam_span'].keys():
              if s_e =='end': 
                  N=10
              ref = t['Beam_span'][s]["G"][g][s_e]
+            #print Northing(y) then Easting(x)
              print(f"S{s}G{g}N{N:02d}\t{ref.Y}\t{ref.X}")
+
+
+def get_bent_layout_info():
+    '''Report much of what is on the layout sheets 1 and 2
+    Note Bt 1  fillface is used NOT CL
+    All the layout points are the CL_pt except at end bents
+    '''
+
+    bent_layout_info = {0: None, 1: dict() }   #use dict with integer indexes
+  
+    PT_tangent = myChain.Routes[4].outRay()
+    bent_layout_info['BL_Ray'] = PT_tangent
+
+    #bent 1 fillface = 21 inch off off CL_bearing
+    #assume stationis correct THIS MUST BE CHECKED
+    bent_layout_info[1]['Pt'] = myChain.set_point(17346.43, 0)
+    bent_layout_info[1]['Ray'] = Ray(bent_layout_info[1]['Pt'], t["Bent_CL_Ray"][1].bearing)
+    bent_layout_info[1]['Layout_Chord'] = Segment(bent_layout_info[1]['Pt'], t["Bent_CL_Pt"][1])
+    bent_layout_info[1][''] = Segment(bent_layout_info[1]['Pt'], t["Bent_CL_Pt"][1])
+
+    for bt in range(2,10):
+        bent_layout_info[bt] = dict()
+        bent_layout_info[bt]['Pt']  = t["Bent_CL_Pt"][bt]  #use a dict but integer
+        bent_layout_info[bt]['Ray']  = t["Bent_CL_Ray"][bt]  #use a dict but integer
+        bent_layout_info[bt]['Layout_Chord'] = t["Span_Chord"][bt]
+        bent_layout_info[bt]['PT_tangent'] = PT_tangent.get_distance_offset( t["Bent_CL_Pt"][bt] ) 
+
+
+    return bent_layout_info
+
+from civil.utility import dd2dms, rad2dms, ftc
+layout = get_bent_layout_info()
+for n in range(2,9):
+
+    ray = layout[n]['Ray'].bearing 
+    lo_chord = layout[n]['Layout_Chord'].bearing 
+    bk_lo_chord =  layout[n-1]['Layout_Chord'].bearing
+    lo_diff = rad2dms(bk_lo_chord.angle_to_bearing(lo_chord))
+    
+    bk2ray = rad2dms(bk_lo_chord.angle_to_bearing(ray) )
+    ray2lo_chord = rad2dms(ray.angle_to_bearing(lo_chord)) 
+
+    pt_pt = layout[n]
+    d_os = layout[n]["PT_tangent"][0] - layout[n+1]["PT_tangent"][0] 
+
+    print ( n, lo_diff ) 
+    print ( f"{bk2ray=}")
+    print ( f"{ray2lo_chord=}")
+    print ( f"{ftc(layout[n]['Layout_Chord'].length)=}" ) 
+    
+    print ( f"{ftc(d_os)=}")
+    print()
+    
+print( "BL_Ray", layout["BL_Ray"] ) 
 IPython.embed()

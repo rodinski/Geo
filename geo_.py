@@ -222,6 +222,9 @@ class Bearing(float):
         # cmath.rect( r, theta)  returns a complex
         return Bearing(cmath.phase(cmath.rect(1.00,  self - pi/2.0)))
 
+    def angle_to_bearing(self, inobj):
+        return Angle(inobj - self) 
+
     def __str__(self):
         return '%g rad  %g deg' % (self, math.degrees(self))
 
@@ -345,13 +348,13 @@ class Ray:
                              width,  **kwargs)
 
     def __repr__(self):
-        return f"Ray(self.Point.__repr__(), self.bearing.__repr__())"
+        return f"Ray({self.Point.__repr__()}, {self.bearing.__repr__()})"
 
     def __str__(self):
         _s = "\n"
         _s +=  "Ray:\n"
-        _s += f"       .{self.Point}\n"
-        _s += f"       .{self.bearing}\n"
+        _s += f"    {self.Point}\n"
+        _s += f"    {self.bearing}\n"
         _s += f"-- Ray End --"
         return _s
 
